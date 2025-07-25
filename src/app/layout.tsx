@@ -4,10 +4,12 @@ import "./globals.css";
 
 const notoSansKR = Noto_Sans_KR({
 	variable: "--font-noto-sans-kr",
+	subsets: ["latin"],
 });
 
 const jetBrainsMono = JetBrains_Mono({
 	variable: "--font-jetbrains-mono",
+	subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
