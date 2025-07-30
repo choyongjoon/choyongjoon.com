@@ -59,7 +59,8 @@
    3. 카페 상품 페이지
       1. 상품 대표 이미지
       2. 상품 정보
-         1. 이름, 가격?, 카테고리, 상품 설명, 칼로리, 단종 여부 등
+         1. name, name_en, description, category, category_origin, id_origin
+         2. allergens, size_text, size_ml, nutrition, is_special_store_only
 2. 인플루언서 리뷰 추가
    1. (TBD)
 3. 사용자 로그인 및 리뷰 작성 기능 추가
