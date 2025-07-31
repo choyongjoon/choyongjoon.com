@@ -1,4 +1,5 @@
 #!/usr/bin/env ts-node
+import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import cron from 'node-cron';
@@ -213,7 +214,7 @@ Environment Variables:
 `);
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
     logger.error('Application error:', error);
     process.exit(1);

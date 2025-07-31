@@ -55,15 +55,16 @@ export const findOrCreateCafe = mutation({
 
 export const upsertProduct = mutation({
   args: {
-    name: v.string(),
     cafeId: v.id('cafes'),
+    name: v.string(),
+    nameEn: v.optional(v.string()),
     category: v.string(),
-    price: v.optional(v.number()),
+    externalCategory: v.optional(v.string()),
     description: v.optional(v.string()),
-    calories: v.optional(v.number()),
     externalImageUrl: v.optional(v.string()),
-    isDiscontinued: v.boolean(),
     externalId: v.string(),
+    externalUrl: v.string(),
+    price: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -107,15 +108,16 @@ export const bulkUpsertProducts = mutation({
   args: {
     products: v.array(
       v.object({
-        name: v.string(),
         cafeId: v.id('cafes'),
+        name: v.string(),
+        nameEn: v.optional(v.string()),
         category: v.string(),
-        price: v.optional(v.number()),
+        externalCategory: v.optional(v.string()),
         description: v.optional(v.string()),
-        calories: v.optional(v.number()),
-        imageUrl: v.optional(v.string()),
-        isDiscontinued: v.boolean(),
+        externalImageUrl: v.optional(v.string()),
         externalId: v.string(),
+        externalUrl: v.string(),
+        price: v.optional(v.number()),
       })
     ),
   },

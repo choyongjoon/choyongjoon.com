@@ -7,11 +7,11 @@
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "start": "node .output/server/index.mjs",
-    "upload-products": "ts-node uploader/upload-products.ts",
-    "sync-once": "ts-node uploader/daily-sync.ts --once",
-    "sync-daemon": "ts-node uploader/daily-sync.ts --daemon",
+    "upload-products": "tsx uploader/upload-products.ts",
+    "sync-once": "tsx uploader/daily-sync.ts --once",
+    "sync-daemon": "tsx uploader/daily-sync.ts --daemon",
     "test-uploader": "node uploader/test-uploader.cjs",
-    "crawler": "ts-node crawler/starbucks-crawler.ts"
+    "crawler": "tsx crawler/starbucks-crawler.ts"
   },
   "dependencies": {
     "@convex-dev/react-query": "0.0.0-alpha.11",
@@ -38,13 +38,23 @@
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.6.0",
     "autoprefixer": "^10.4.20",
+    "dotenv": "^17.2.1",
     "pino-pretty": "^13.1.1",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
     "typescript": "^5.7.2",
     "ultracite": "^5.1.2",
     "vite": "^6.3.5",
     "vite-tsconfig-paths": "^5.1.4"
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node",
+    "compilerOptions": {
+      "module": "ESNext",
+      "moduleResolution": "node"
+    }
   }
 }

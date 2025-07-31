@@ -2,11 +2,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ConvexClient } from 'convex/browser';
+import dotenv from 'dotenv';
 import { api } from '../convex/_generated/api';
 import { logger } from '../shared/logger';
 
+// Load environment variables from .env.local
+dotenv.config({ path: '.env.local' });
+
 const CONVEX_URL =
-  process.env.CONVEX_URL || 'https://your-convex-deployment.convex.cloud';
+  process.env.VITE_CONVEX_URL ||
+  process.env.CONVEX_URL ||
+  'https://your-convex-deployment.convex.cloud';
 
 interface UploadOptions {
   file?: string;
@@ -32,7 +38,14 @@ class ProductUploader {
   private client: ConvexClient;
 
   constructor() {
-    this.client = new ConvexClient(CONVEX_URL);
+    logger.info(`Initializing ConvexClient with URL: ${CONVEX_URL}`);
+    try {
+      this.client = new ConvexClient(CONVEX_URL);
+      logger.info('ConvexClient initialized successfully');
+    } catch (error) {
+      logger.error('Failed to initialize ConvexClient:', error);
+      throw error;
+    }
   }
 
   async uploadFromFile(options: UploadOptions): Promise<UploadResult> {
@@ -64,6 +77,10 @@ class ProductUploader {
       return result;
     } catch (error) {
       logger.error('Upload failed:', error);
+      if (error instanceof Error) {
+        logger.error('Error message:', error.message);
+        logger.error('Error stack:', error.stack);
+      }
       throw error;
     }
   }
@@ -169,7 +186,10 @@ class ProductUploader {
   }
 
   private findLatestCrawlerOutput(): string {
-    const outputDir = path.join(__dirname, '../crawler/crawler-outputs');
+    const outputDir = path.join(
+      import.meta.dirname,
+      '../crawler/crawler-outputs'
+    );
 
     if (!fs.existsSync(outputDir)) {
       throw new Error('Crawler outputs directory not found');
@@ -218,54 +238,61 @@ class ProductUploader {
 
 // CLI Interface
 async function main() {
-  const args = process.argv.slice(2);
-
-  if (args.includes('--help') || args.includes('-h')) {
-    printHelp();
-    return;
-  }
-
-  const uploader = new ProductUploader();
-
-  // Parse command line arguments
-  const command = args[0];
-
-  if (command === 'stats') {
-    const cafeSlug = args[1] || 'starbucks';
-    const daysBack = Number.parseInt(args[2], 10) || 7;
-    await uploader.getStats(cafeSlug, daysBack);
-    return;
-  }
-
-  // Default upload command
-  const options: UploadOptions = {
-    cafeName: 'Starbucks Korea',
-    cafeSlug: 'starbucks',
-    dryRun: args.includes('--dry-run'),
-    verbose: args.includes('--verbose') || args.includes('-v'),
-  };
-
-  // Parse file option
-  const fileIndex = args.indexOf('--file');
-  if (fileIndex !== -1 && args[fileIndex + 1]) {
-    options.file = args[fileIndex + 1];
-  }
-
-  // Parse cafe options
-  const cafeNameIndex = args.indexOf('--cafe-name');
-  if (cafeNameIndex !== -1 && args[cafeNameIndex + 1]) {
-    options.cafeName = args[cafeNameIndex + 1];
-  }
-
-  const cafeSlugIndex = args.indexOf('--cafe-slug');
-  if (cafeSlugIndex !== -1 && args[cafeSlugIndex + 1]) {
-    options.cafeSlug = args[cafeSlugIndex + 1];
-  }
-
   try {
+    logger.info('Starting main function...');
+    const args = process.argv.slice(2);
+
+    if (args.includes('--help') || args.includes('-h')) {
+      printHelp();
+      return;
+    }
+
+    logger.info('Creating ProductUploader instance...');
+    const uploader = new ProductUploader();
+    logger.info('ProductUploader created successfully');
+
+    // Parse command line arguments
+    const command = args[0];
+
+    if (command === 'stats') {
+      const cafeSlug = args[1] || 'starbucks';
+      const daysBack = Number.parseInt(args[2], 10) || 7;
+      await uploader.getStats(cafeSlug, daysBack);
+      return;
+    }
+
+    // Default upload command
+    const options: UploadOptions = {
+      cafeName: 'Starbucks Korea',
+      cafeSlug: 'starbucks',
+      dryRun: args.includes('--dry-run'),
+      verbose: args.includes('--verbose') || args.includes('-v'),
+    };
+
+    // Parse file option
+    const fileIndex = args.indexOf('--file');
+    if (fileIndex !== -1 && args[fileIndex + 1]) {
+      options.file = args[fileIndex + 1];
+    }
+
+    // Parse cafe options
+    const cafeNameIndex = args.indexOf('--cafe-name');
+    if (cafeNameIndex !== -1 && args[cafeNameIndex + 1]) {
+      options.cafeName = args[cafeNameIndex + 1];
+    }
+
+    const cafeSlugIndex = args.indexOf('--cafe-slug');
+    if (cafeSlugIndex !== -1 && args[cafeSlugIndex + 1]) {
+      options.cafeSlug = args[cafeSlugIndex + 1];
+    }
+
     await uploader.uploadFromFile(options);
   } catch (error) {
     logger.error('Upload failed:', error);
+    if (error instanceof Error) {
+      logger.error('Error message:', error.message);
+      logger.error('Error stack:', error.stack);
+    }
     process.exit(1);
   }
 }
@@ -301,7 +328,7 @@ Environment:
 `);
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
     logger.error('Application error:', error);
     process.exit(1);

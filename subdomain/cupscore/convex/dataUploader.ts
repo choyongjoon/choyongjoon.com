@@ -11,22 +11,10 @@ interface CrawlerProduct {
   externalCategory: string;
   externalId: string;
   externalImageUrl: string;
-  url: string;
-  price: string;
+  externalUrl: string;
+  price: number | null;
   category: string;
 }
-
-interface ProcessedProduct {
-  name: string;
-  category: string;
-  price: number | undefined;
-  description: string;
-  calories: number | undefined;
-  imageUrl: string;
-  isDiscontinued: boolean;
-  externalId: string;
-}
-
 interface UploadResults {
   processed: number;
   created: number;
@@ -37,54 +25,20 @@ interface UploadResults {
   processingTime: number;
 }
 
-// Helper function to transform raw product data
-function transformProductData(
-  rawProduct: unknown,
-  results: UploadResults
-): ProcessedProduct | null {
-  try {
-    const crawlerProduct = rawProduct as CrawlerProduct;
-
-    // Skip if missing required fields
-    if (!(crawlerProduct.name && crawlerProduct.externalId)) {
-      results.skipped++;
-      return null;
-    }
-
-    const processed: ProcessedProduct = {
-      name: crawlerProduct.name.trim(),
-      category: mapCategory(
-        crawlerProduct.externalCategory || crawlerProduct.category || 'Other'
-      ),
-      price: parsePrice(crawlerProduct.price),
-      description: crawlerProduct.description?.trim() || '',
-      calories: undefined, // Not available in crawler data
-      imageUrl: crawlerProduct.externalImageUrl || '',
-      isDiscontinued: false, // Default to false, can be updated later
-      externalId: crawlerProduct.externalId,
-    };
-
-    results.processed++;
-    return processed;
-  } catch (error) {
-    results.errors.push(`Failed to process product: ${error}`);
-    return null;
-  }
-}
-
 // Helper function to upload products to database
 async function uploadProductsToDatabase(
   ctx: GenericMutationCtx<GenericDataModel>,
-  processedProducts: ProcessedProduct[],
+  products: CrawlerProduct[],
   cafeId: Id<'cafes'>,
   results: UploadResults
 ) {
-  for (const product of processedProducts) {
+  for (const product of products) {
     try {
       // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing required for database consistency
       const result = await ctx.runMutation(api.products.upsertProduct, {
         ...product,
         cafeId,
+        price: product.price ?? undefined,
       });
       if (result.action === 'created') {
         results.created++;
@@ -126,27 +80,17 @@ export const uploadProductsFromJson = mutation({
       processingTime: 0,
     };
 
-    const processedProducts: ProcessedProduct[] = [];
-
-    // Transform crawler data to our format
-    for (const rawProduct of products) {
-      const processed = transformProductData(rawProduct, results);
-      if (processed) {
-        processedProducts.push(processed);
-      }
-    }
-
     if (dryRun) {
       results.processingTime = Date.now() - startTime;
       return {
         ...results,
-        message: `Dry run completed. Would process ${processedProducts.length} products.`,
-        samples: processedProducts.slice(0, 3), // Show first 3 as samples
+        message: `Dry run completed. Would process ${products.length} products.`,
+        samples: products.slice(0, 3), // Show first 3 as samples
       };
     }
 
     // Upload processed products
-    await uploadProductsToDatabase(ctx, processedProducts, cafeId, results);
+    await uploadProductsToDatabase(ctx, products, cafeId, results);
 
     results.processingTime = Date.now() - startTime;
 
@@ -156,47 +100,6 @@ export const uploadProductsFromJson = mutation({
     };
   },
 });
-
-function mapCategory(originalCategory: string): string {
-  const categoryMap: Record<string, string> = {
-    '콜드 브루': 'Cold Brew',
-    에스프레소: 'Espresso',
-    '블론드 에스프레소': 'Blonde Espresso',
-    '브루드 커피': 'Brewed Coffee',
-    디카페인: 'Decaf',
-    프라푸치노: 'Frappuccino',
-    블렌디드: 'Blended',
-    티: 'Tea',
-    기타: 'Other',
-    Drinks: 'Beverages',
-    Food: 'Food',
-    '웹사이트 비노출 메뉴(사이렌오더 영양정보 연동)': 'Limited Menu',
-  };
-
-  return categoryMap[originalCategory] || originalCategory;
-}
-
-function parsePrice(priceString: string): number | undefined {
-  if (!priceString) {
-    return;
-  }
-
-  // Handle "Price varies by size" or similar
-  if (
-    priceString.toLowerCase().includes('varies') ||
-    priceString.toLowerCase().includes('사이즈')
-  ) {
-    return;
-  }
-
-  // Extract numbers from price string
-  const numbers = priceString.match(/\d+/g);
-  if (numbers && numbers.length > 0) {
-    return Number.parseInt(numbers[0], 10);
-  }
-
-  return;
-}
 
 export const getUploadStats = mutation({
   args: {

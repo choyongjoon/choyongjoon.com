@@ -12,13 +12,13 @@ interface Product {
   category: string;
   externalCategory: string;
   externalId: string;
-  url: string;
+  externalUrl: string;
 }
 
 async function extractProductData(page: {
   evaluate: (fn: () => unknown) => Promise<unknown>;
-}): Promise<Partial<Product>> {
-  const result = await page.evaluate(() => {
+}): Promise<Product> {
+  const result = (await page.evaluate(() => {
     // Extract Korean name
     const nameElement = document.querySelector('.myAssignZone > h4');
     let name = nameElement?.textContent?.trim() || '';
@@ -60,11 +60,11 @@ async function extractProductData(page: {
       externalCategory,
       externalId,
       externalImageUrl,
-      url: window.location.href,
+      externalUrl: window.location.href,
     };
-  });
+  })) as Product;
 
-  return result as Partial<Product>;
+  return result;
 }
 
 const crawler = new PlaywrightCrawler({
@@ -87,8 +87,7 @@ const crawler = new PlaywrightCrawler({
 
     log.info(`Found ${productCount} products to crawl`);
 
-    // Process products (limit to 10 for initial run)
-    const maxProducts = Math.min(10, productCount);
+    const maxProducts = productCount;
     const products: Product[] = [];
 
     for (let i = 0; i < maxProducts; i++) {
@@ -134,7 +133,7 @@ const crawler = new PlaywrightCrawler({
 
     // Save all extracted products
     if (products.length > 0) {
-      const outputPath = path.join(process.cwd(), 'crawler-outputs');
+      const outputPath = path.join(process.cwd(), 'crawler', 'crawler-outputs');
       if (!fs.existsSync(outputPath)) {
         fs.mkdirSync(outputPath, { recursive: true });
       }

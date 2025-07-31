@@ -16,6 +16,7 @@ export default defineSchema({
     description: v.optional(v.string()),
     externalImageUrl: v.optional(v.string()),
     externalId: v.string(),
+    externalUrl: v.string(),
     price: v.optional(v.number()),
     addedAt: v.number(),
     updatedAt: v.number(),

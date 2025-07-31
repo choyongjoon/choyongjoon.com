@@ -21,7 +21,7 @@ logger.info('Testing Product Uploader Data Processing...');
 const crawlerFile = path.join(
   __dirname,
   '../crawler/crawler-outputs',
-  'starbucks-products-2025-07-30.json'
+  'starbucks-products-2025-07-31.json'
 );
 
 if (!fs.existsSync(crawlerFile)) {
