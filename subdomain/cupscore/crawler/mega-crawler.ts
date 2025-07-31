@@ -135,6 +135,7 @@ async function extractPageProducts(page: Page, categoryName = 'Default') {
   // Try each selector until we find products
   for (const selector of containerSelectors) {
     const containers = page.locator(selector);
+    // biome-ignore lint/nursery/noAwaitInLoop: Sequential selector checking is intentional
     const count = await containers.count();
     if (count > 0) {
       productContainers = containers;
@@ -190,6 +191,7 @@ async function extractMenuCategories(page: Page) {
 
   for (const selector of categorySelectors) {
     const checkboxes = page.locator(selector);
+    // biome-ignore lint/nursery/noAwaitInLoop: Sequential selector checking is intentional
     const count = await checkboxes.count();
 
     if (count > 0) {
@@ -271,8 +273,9 @@ async function handleMainMenuPage(
   // Handle pagination by clicking through all pages
   while (true) {
     logger.info(`Processing page ${currentPage}...`);
-    
+
     // Wait for content to load
+    // biome-ignore lint/nursery/noAwaitInLoop: Pagination requires sequential page processing
     await waitForAjaxContent(page);
 
     // Extract products from the current page
@@ -282,30 +285,36 @@ async function handleMainMenuPage(
     );
 
     // Save products from current page
-    for (const product of pageProducts.products) {
-      await crawlerInstance.pushData(product);
-      logger.info(
-        `✅ Extracted: ${product.name} - Category: ${product.externalCategory}`
-      );
-      totalProductsExtracted++;
-    }
+    await Promise.all(
+      pageProducts.products.map(async (product) => {
+        await crawlerInstance.pushData(product);
+        logger.info(
+          `✅ Extracted: ${product.name} - Category: ${product.externalCategory}`
+        );
+      })
+    );
+    totalProductsExtracted += pageProducts.products.length;
 
     // Check if there's a next page button
     const nextButton = page.locator('.board_page_next');
     const nextButtonCount = await nextButton.count();
-    
+
     if (nextButtonCount === 0) {
       logger.info('No next page button found, pagination complete');
       break;
     }
 
     // Check if the next button is disabled or not clickable
-    const isDisabled = await nextButton.evaluate((el) => {
-      return el.hasAttribute('disabled') || 
-             el.classList.contains('disabled') || 
-             el.style.display === 'none' ||
-             !(el as HTMLElement).offsetParent; // Check if element is visible
-    }).catch(() => true);
+    const isDisabled = await nextButton
+      .evaluate((el) => {
+        return (
+          el.hasAttribute('disabled') ||
+          el.classList.contains('disabled') ||
+          el.style.display === 'none' ||
+          !(el as HTMLElement).offsetParent
+        ); // Check if element is visible
+      })
+      .catch(() => true);
 
     if (isDisabled) {
       logger.info('Next page button is disabled, reached end of pagination');
@@ -314,28 +323,31 @@ async function handleMainMenuPage(
 
     // Click the next page button
     try {
-      logger.info(`Clicking next page button to go to page ${currentPage + 1}...`);
+      logger.info(
+        `Clicking next page button to go to page ${currentPage + 1}...`
+      );
       await nextButton.click();
-      
+
       // Wait for the new page content to load
       await page.waitForTimeout(3000); // Wait for AJAX content
       await waitForAjaxContent(page, 15_000); // Extended timeout for pagination
-      
+
       currentPage++;
-      
+
       // Safety check to prevent infinite loops
       if (currentPage > 50) {
         logger.warn('Reached maximum page limit (50), stopping pagination');
         break;
       }
-      
     } catch (error) {
       logger.info(`Failed to click next button or no more pages: ${error}`);
       break;
     }
   }
 
-  logger.info(`Pagination complete. Total products extracted: ${totalProductsExtracted} across ${currentPage} pages`);
+  logger.info(
+    `Pagination complete. Total products extracted: ${totalProductsExtracted} across ${currentPage} pages`
+  );
 
   // If we found categories, enqueue them for processing (though pagination might cover all products)
   if (categories.length > 1) {
@@ -380,10 +392,14 @@ async function handleCategoryPage(
     );
 
     // Save all products from this category
-    for (const product of categoryProducts.products) {
-      await crawlerInstance.pushData(product);
-      logger.info(`✅ Extracted: ${product.name} - Category: ${categoryName}`);
-    }
+    await Promise.all(
+      categoryProducts.products.map(async (product) => {
+        await crawlerInstance.pushData(product);
+        logger.info(
+          `✅ Extracted: ${product.name} - Category: ${categoryName}`
+        );
+      })
+    );
 
     // Check for pagination or "Load More" functionality
     const loadMoreButton = page.locator(
@@ -402,12 +418,14 @@ async function handleCategoryPage(
           page,
           categoryName
         );
-        for (const product of additionalProducts.products) {
-          await crawlerInstance.pushData(product);
-          logger.info(
-            `✅ Additional: ${product.name} - Category: ${categoryName}`
-          );
-        }
+        await Promise.all(
+          additionalProducts.products.map(async (product) => {
+            await crawlerInstance.pushData(product);
+            logger.info(
+              `✅ Additional: ${product.name} - Category: ${categoryName}`
+            );
+          })
+        );
       } catch (error) {
         logger.warn('Could not click "Load More" button:', error);
       }
