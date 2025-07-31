@@ -11,6 +11,7 @@
     "sync-once": "tsx uploader/daily-sync.ts --once",
     "sync-daemon": "tsx uploader/daily-sync.ts --daemon",
     "test-uploader": "node uploader/test-uploader.cjs",
+    "crawler": "tsx crawler/run-crawler.ts",
     "crawler:starbucks": "tsx crawler/starbucks-crawler.ts",
     "crawler:compose": "tsx crawler/compose-crawler.ts"
   },
