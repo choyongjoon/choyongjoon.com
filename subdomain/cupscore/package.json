@@ -7,6 +7,7 @@
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "start": "node .output/server/index.mjs",
+    "upload": "tsx uploader/run-uploader.ts",
     "upload-products": "tsx uploader/upload-products.ts",
     "sync-once": "tsx uploader/daily-sync.ts --once",
     "sync-daemon": "tsx uploader/daily-sync.ts --daemon",
