@@ -16,7 +16,11 @@ export default defineSchema({
     calories: v.optional(v.number()),
     imageUrl: v.optional(v.string()),
     isDiscontinued: v.boolean(),
+    externalId: v.string(),
+    addedAt: v.number(),
+    updatedAt: v.number(),
   })
     .index('by_cafe', ['cafeId'])
-    .index('by_category', ['category']),
+    .index('by_category', ['category'])
+    .index('by_external_id', ['externalId']),
 });

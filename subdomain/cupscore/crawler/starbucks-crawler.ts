@@ -41,7 +41,9 @@ function extractProductData(page: {
 
     // Extract image
     let image = '';
-    const imgElement = document.querySelector('.elevatezoom-gallery > img:nth-child(1)');
+    const imgElement = document.querySelector(
+      '.elevatezoom-gallery > img:nth-child(1)'
+    );
     if (imgElement) {
       image = (imgElement as HTMLImageElement).src;
     }
@@ -86,7 +88,6 @@ const crawler = new PlaywrightCrawler({
     const maxProducts = Math.min(10, productCount);
     const products: Product[] = [];
 
-    // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing is required for web crawling
     for (let i = 0; i < maxProducts; i++) {
       try {
         log.info(`Processing product ${i + 1}/${maxProducts}`);

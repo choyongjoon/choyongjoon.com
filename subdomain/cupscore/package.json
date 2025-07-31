@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
-    "start": "node .output/server/index.mjs"
+    "start": "node .output/server/index.mjs",
+    "upload-products": "ts-node uploader/upload-products.ts",
+    "sync-once": "ts-node uploader/daily-sync.ts --once",
+    "sync-daemon": "ts-node uploader/daily-sync.ts --daemon",
+    "test-uploader": "node uploader/test-uploader.cjs",
+    "crawler": "ts-node crawler/starbucks-crawler.ts"
   },
   "dependencies": {
     "@convex-dev/react-query": "0.0.0-alpha.11",
@@ -22,7 +27,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.6.0",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.5.4",
@@ -34,6 +40,8 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",
     "vite": "^6.3.5",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "@types/node-cron": "^3.0.11",
+    "ts-node": "^10.9.2"
   }
 }
