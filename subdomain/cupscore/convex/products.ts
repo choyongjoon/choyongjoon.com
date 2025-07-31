@@ -131,6 +131,7 @@ export const bulkUpsertProducts = mutation({
 
     for (const product of products) {
       try {
+        // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing required for database consistency
         const result = await ctx.runMutation(
           api.products.upsertProduct,
           product

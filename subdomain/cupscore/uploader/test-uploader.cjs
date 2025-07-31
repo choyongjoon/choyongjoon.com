@@ -1,9 +1,21 @@
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
+const pino = require('pino');
+
+const logger = pino({
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'HH:MM:ss Z',
+      ignore: 'pid,hostname',
+    },
+  },
+});
 
 // Simple test to verify the uploader data processing
-console.log('🧪 Testing Product Uploader Data Processing...\n');
+logger.info('Testing Product Uploader Data Processing...');
 
 // Read the sample crawler data
 const crawlerFile = path.join(
@@ -13,15 +25,15 @@ const crawlerFile = path.join(
 );
 
 if (!fs.existsSync(crawlerFile)) {
-  console.error('❌ Crawler output file not found:', crawlerFile);
+  logger.error('Crawler output file not found:', crawlerFile);
   process.exit(1);
 }
 
-console.log('📁 Reading crawler data...');
+logger.info('Reading crawler data...');
 const rawData = fs.readFileSync(crawlerFile, 'utf-8');
 const products = JSON.parse(rawData);
 
-console.log(`📦 Found ${products.length} products in crawler output\n`);
+logger.info(`Found ${products.length} products in crawler output`);
 
 // Test data transformation logic (same as in dataUploader.ts)
 function mapCategory(originalCategory) {
@@ -64,7 +76,7 @@ function parsePrice(priceString) {
 }
 
 // Process first few products as test
-console.log('🔄 Processing product data...\n');
+logger.info('Processing product data...');
 
 const results = {
   processed: 0,
@@ -105,30 +117,29 @@ for (let i = 0; i < Math.min(products.length, 10); i++) {
 }
 
 // Print results
-console.log('📈 Test Results:');
-console.log(`  Processed: ${results.processed}/10 (sample)`);
-console.log(`  Skipped: ${results.skipped}`);
-console.log(`  Errors: ${results.errors.length}`);
+logger.info('Test Results:');
+logger.info(`  Processed: ${results.processed}/10 (sample)`);
+logger.info(`  Skipped: ${results.skipped}`);
+logger.info(`  Errors: ${results.errors.length}`);
 
 if (results.errors.length > 0) {
-  console.log('\n❌ Errors:');
+  logger.error('Errors:');
   for (const error of results.errors) {
-    console.log(`  - ${error}`);
+    logger.error(`  - ${error}`);
   }
 }
 
-console.log('\n🔍 Sample processed products:');
+logger.info('Sample processed products:');
 for (const [index, product] of results.samples.entries()) {
-  console.log(`  ${index + 1}. ${product.name}`);
-  console.log(`     Category: ${product.category}`);
-  console.log(`     Price: ${product.price || 'varies by size'}`);
-  console.log(`     External ID: ${product.externalId}`);
-  console.log(`     Image: ${product.imageUrl ? '✅' : '❌'}`);
-  console.log('');
+  logger.info(`  ${index + 1}. ${product.name}`);
+  logger.info(`     Category: ${product.category}`);
+  logger.info(`     Price: ${product.price || 'varies by size'}`);
+  logger.info(`     External ID: ${product.externalId}`);
+  logger.info(`     Image: ${product.imageUrl ? '✅' : '❌'}`);
 }
 
 // Test full dataset processing
-console.log('📊 Full Dataset Analysis:');
+logger.info('Full Dataset Analysis:');
 const categories = new Set();
 let withImages = 0;
 let withPrices = 0;
@@ -149,20 +160,20 @@ for (const product of products) {
   }
 }
 
-console.log(`  Total products: ${products.length}`);
-console.log(`  Valid products: ${validProducts}`);
-console.log(
+logger.info(`  Total products: ${products.length}`);
+logger.info(`  Valid products: ${validProducts}`);
+logger.info(
   `  Categories: ${categories.size} (${Array.from(categories).join(', ')})`
 );
-console.log(`  With images: ${withImages}/${validProducts}`);
-console.log(`  With prices: ${withPrices}/${validProducts}`);
+logger.info(`  With images: ${withImages}/${validProducts}`);
+logger.info(`  With prices: ${withPrices}/${validProducts}`);
 
-console.log('\n✅ Data processing test completed successfully!');
-console.log('\n💡 Next steps:');
-console.log('  1. Start Convex development server: npx convex dev');
-console.log(
+logger.info('Data processing test completed successfully!');
+logger.info('Next steps:');
+logger.info('  1. Start Convex development server: npx convex dev');
+logger.info(
   '  2. Test actual upload: CONVEX_URL=https://accomplished-hippopotamus-189.convex.cloud npm run upload-products -- --dry-run'
 );
-console.log(
+logger.info(
   '  3. Perform real upload: CONVEX_URL=https://accomplished-hippopotamus-189.convex.cloud npm run upload-products'
 );

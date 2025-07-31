@@ -1,5 +1,7 @@
+import type { GenericDataModel, GenericMutationCtx } from 'convex/server';
 import { v } from 'convex/values';
 import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { mutation } from './_generated/server';
 
 interface CrawlerProduct {
@@ -72,15 +74,14 @@ function transformProductData(
 
 // Helper function to upload products to database
 async function uploadProductsToDatabase(
-  ctx: {
-    runMutation: (mutation: any, args: any) => Promise<{ action: string }>;
-  },
+  ctx: GenericMutationCtx<GenericDataModel>,
   processedProducts: ProcessedProduct[],
-  cafeId: string,
+  cafeId: Id<'cafes'>,
   results: UploadResults
 ) {
   for (const product of processedProducts) {
     try {
+      // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing required for database consistency
       const result = await ctx.runMutation(api.products.upsertProduct, {
         ...product,
         cafeId,

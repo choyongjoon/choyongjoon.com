@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PlaywrightCrawler } from 'crawlee';
+import { logger } from '../shared/logger';
 
 interface Product {
   name: string;
@@ -14,10 +15,10 @@ interface Product {
   url: string;
 }
 
-function extractProductData(page: {
+async function extractProductData(page: {
   evaluate: (fn: () => unknown) => Promise<unknown>;
-}) {
-  return page.evaluate(() => {
+}): Promise<Partial<Product>> {
+  const result = await page.evaluate(() => {
     // Extract Korean name
     const nameElement = document.querySelector('.myAssignZone > h4');
     let name = nameElement?.textContent?.trim() || '';
@@ -62,6 +63,8 @@ function extractProductData(page: {
       url: window.location.href,
     };
   });
+
+  return result as Partial<Product>;
 }
 
 const crawler = new PlaywrightCrawler({
@@ -93,6 +96,7 @@ const crawler = new PlaywrightCrawler({
         log.info(`Processing product ${i + 1}/${maxProducts}`);
 
         // Click the product at index i
+        // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing required for web scraping
         await page.evaluate((index) => {
           const links = document.querySelectorAll('a.goDrinkView');
           if (links[index]) {
@@ -139,12 +143,12 @@ const crawler = new PlaywrightCrawler({
       const filepath = path.join(outputPath, filename);
 
       fs.writeFileSync(filepath, JSON.stringify(products, null, 2));
-      log.info(`💾 Saved ${products.length} products to ${filename}`);
+      logger.info(`Saved ${products.length} products to ${filename}`);
       // Log summary
-      log.info('\n=== CRAWL SUMMARY ===');
-      log.info(`Total products extracted: ${products.length}`);
+      logger.info('=== CRAWL SUMMARY ===');
+      logger.info(`Total products extracted: ${products.length}`);
       for (const [i, p] of products.entries()) {
-        log.info(`${i + 1}. ${p.name} (${p.name_en}) - ID: ${p.id_origin}`);
+        logger.info(`${i + 1}. ${p.name} (${p.name_en}) - ID: ${p.id_origin}`);
       }
     }
   },

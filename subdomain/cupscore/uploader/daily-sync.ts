@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import cron from 'node-cron';
+import { logger } from '../shared/logger';
 import { ProductUploader } from './upload-products';
 
 interface SyncConfig {
@@ -90,12 +91,11 @@ class DailySyncService {
   }
 
   private log(message: string): void {
-    const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] ${message}`;
-
-    console.log(logMessage);
+    logger.info(message);
 
     // Also write to log file
+    const timestamp = new Date().toISOString();
+    const logMessage = `[${timestamp}] ${message}`;
     fs.appendFileSync(this.logFile, `${logMessage}\n`);
   }
 
@@ -165,7 +165,7 @@ async function main() {
 
     // Keep the process running
     process.on('SIGINT', () => {
-      console.log('Shutting down daily sync service...');
+      logger.info('Shutting down daily sync service...');
       process.exit(0);
     });
 
@@ -181,8 +181,7 @@ async function main() {
 }
 
 function printHelp(): void {
-  console.log(`
-⏰ Daily Product Sync Service
+  logger.info(`Daily Product Sync Service
 
 Usage:
   ts-node daily-sync.ts [options]
@@ -215,7 +214,10 @@ Environment Variables:
 }
 
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch((error) => {
+    logger.error('Application error:', error);
+    process.exit(1);
+  });
 }
 
 export { DailySyncService };

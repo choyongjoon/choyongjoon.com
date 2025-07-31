@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ConvexClient } from 'convex/browser';
 import { api } from '../convex/_generated/api';
+import { logger } from '../shared/logger';
 
 const CONVEX_URL =
   process.env.CONVEX_URL || 'https://your-convex-deployment.convex.cloud';
@@ -50,7 +51,7 @@ class ProductUploader {
       this.logUploadInfo(filePath, cafeName, cafeSlug, dryRun);
     }
 
-    console.log(`📦 Found ${products.length} products in file`);
+    logger.info(`Found ${products.length} products in file`);
 
     try {
       const result = await this.performUpload(
@@ -62,7 +63,7 @@ class ProductUploader {
       this.handleUploadResult(result, verbose, dryRun);
       return result;
     } catch (error) {
-      console.error('❌ Upload failed:', error);
+      logger.error('Upload failed:', error);
       throw error;
     }
   }
@@ -83,7 +84,7 @@ class ProductUploader {
     return filePath;
   }
 
-  private readAndValidateFile(filePath: string, verbose: boolean): unknown[] {
+  private readAndValidateFile(filePath: string, _verbose: boolean): unknown[] {
     const fileContent = fs.readFileSync(filePath, 'utf-8');
     let products: unknown[];
 
@@ -106,9 +107,9 @@ class ProductUploader {
     cafeSlug: string,
     dryRun: boolean
   ): void {
-    console.log(`📁 Reading file: ${filePath}`);
-    console.log(`🏪 Cafe: ${cafeName} (${cafeSlug})`);
-    console.log(`🧪 Dry run: ${dryRun ? 'Yes' : 'No'}`);
+    logger.info(`Reading file: ${filePath}`);
+    logger.info(`Cafe: ${cafeName} (${cafeSlug})`);
+    logger.info(`Dry run: ${dryRun ? 'Yes' : 'No'}`);
   }
 
   private async performUpload(
@@ -133,12 +134,12 @@ class ProductUploader {
     this.printResults(result, verbose);
 
     if (!dryRun && result.errors.length === 0) {
-      console.log('✅ Upload completed successfully!');
+      logger.info('Upload completed successfully!');
     } else if (result.errors.length > 0) {
-      console.log(`⚠️  Upload completed with ${result.errors.length} errors`);
+      logger.warn(`Upload completed with ${result.errors.length} errors`);
       if (verbose) {
         for (const error of result.errors) {
-          console.log(`  ❌ ${error}`);
+          logger.error(`  ${error}`);
         }
       }
     }
@@ -154,15 +155,15 @@ class ProductUploader {
         }
       );
 
-      console.log(`📊 Statistics for ${cafeSlug} (last ${daysBack} days):`);
-      console.log(`  Total products: ${stats.total}`);
-      console.log(`  Recently added: ${stats.recentlyAdded}`);
-      console.log(`  Recently updated: ${stats.recentlyUpdated}`);
-      console.log(`  Categories: ${stats.categories}`);
-      console.log(`  With images: ${stats.withImages}/${stats.total}`);
-      console.log(`  With prices: ${stats.withPrices}/${stats.total}`);
+      logger.info(`Statistics for ${cafeSlug} (last ${daysBack} days):`);
+      logger.info(`  Total products: ${stats.total}`);
+      logger.info(`  Recently added: ${stats.recentlyAdded}`);
+      logger.info(`  Recently updated: ${stats.recentlyUpdated}`);
+      logger.info(`  Categories: ${stats.categories}`);
+      logger.info(`  With images: ${stats.withImages}/${stats.total}`);
+      logger.info(`  With prices: ${stats.withPrices}/${stats.total}`);
     } catch (error) {
-      console.error('❌ Failed to get stats:', error);
+      logger.error('Failed to get stats:', error);
       throw error;
     }
   }
@@ -188,28 +189,28 @@ class ProductUploader {
       throw new Error('No JSON files found in crawler-outputs directory');
     }
 
-    console.log(`📄 Using latest file: ${files[0].name}`);
+    logger.info(`Using latest file: ${files[0].name}`);
     return files[0].path;
   }
 
   private printResults(result: UploadResult, verbose: boolean): void {
-    console.log('\n📈 Results:');
-    console.log(`  Processed: ${result.processed}`);
-    console.log(`  Created: ${result.created}`);
-    console.log(`  Updated: ${result.updated}`);
-    console.log(`  Unchanged: ${result.unchanged}`);
-    console.log(`  Skipped: ${result.skipped}`);
-    console.log(`  Errors: ${result.errors.length}`);
-    console.log(`  Processing time: ${result.processingTime}ms`);
+    logger.info('Results:');
+    logger.info(`  Processed: ${result.processed}`);
+    logger.info(`  Created: ${result.created}`);
+    logger.info(`  Updated: ${result.updated}`);
+    logger.info(`  Unchanged: ${result.unchanged}`);
+    logger.info(`  Skipped: ${result.skipped}`);
+    logger.info(`  Errors: ${result.errors.length}`);
+    logger.info(`  Processing time: ${result.processingTime}ms`);
 
     if (result.message) {
-      console.log(`\n💬 ${result.message}`);
+      logger.info(result.message);
     }
 
     if (verbose && result.samples) {
-      console.log('\n🔍 Sample processed products:');
+      logger.info('Sample processed products:');
       for (const [index, product] of result.samples.entries()) {
-        console.log(`  ${index + 1}. ${product.name} (${product.category})`);
+        logger.info(`  ${index + 1}. ${product.name} (${product.category})`);
       }
     }
   }
@@ -264,14 +265,13 @@ async function main() {
   try {
     await uploader.uploadFromFile(options);
   } catch (error) {
-    console.error('💥 Upload failed:', error);
+    logger.error('Upload failed:', error);
     process.exit(1);
   }
 }
 
 function printHelp(): void {
-  console.log(`
-📦 Product Uploader CLI
+  logger.info(`Product Uploader CLI
 
 Usage:
   ts-node upload-products.ts [command] [options]
@@ -302,7 +302,10 @@ Environment:
 }
 
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch((error) => {
+    logger.error('Application error:', error);
+    process.exit(1);
+  });
 }
 
 export { ProductUploader };
