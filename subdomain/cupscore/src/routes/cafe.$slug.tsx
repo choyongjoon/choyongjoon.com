@@ -101,15 +101,7 @@ function CafePage() {
                         {product.price.toLocaleString()}원
                       </p>
                     )}
-                    {product.calories && (
-                      <p className="text-base-content/60 text-xs">
-                        {product.calories}kcal
-                      </p>
-                    )}
                   </div>
-                  {product.isDiscontinued && (
-                    <div className="badge badge-error">단종</div>
-                  )}
                 </div>
               </div>
             </div>
