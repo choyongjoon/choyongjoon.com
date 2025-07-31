@@ -20,9 +20,44 @@ const AVAILABLE_CRAWLERS = {
 
 type CrawlerName = keyof typeof AVAILABLE_CRAWLERS;
 
+// Print help information
+function printHelp(): void {
+  logger.info(`
+🕷️  Multi-Crawler Runner
+
+Usage:
+  pnpm crawl                           # Run all crawlers
+  pnpm crawl starbucks                 # Run only Starbucks crawler
+  pnpm crawl starbucks compose         # Run Starbucks and Compose crawlers
+
+Available Crawlers:
+${Object.entries(AVAILABLE_CRAWLERS)
+  .map(
+    ([key, crawler]) =>
+      `  ${key.padEnd(10)} - ${crawler.name} (${crawler.description})`
+  )
+  .join('\n')}
+
+Options:
+  --help, -h         Show this help message
+
+Examples:
+  pnpm crawl                           # Run all crawlers
+  pnpm crawl starbucks                 # Run only Starbucks  
+  pnpm crawl compose                   # Run only Compose
+  pnpm crawl starbucks compose         # Run both Starbucks and Compose
+`);
+}
+
 // Parse command line arguments
 function parseArgs(): CrawlerName[] {
   const args = process.argv.slice(2);
+
+  // Check for help flags
+  if (args.includes('--help') || args.includes('-h')) {
+    printHelp();
+    process.exit(0);
+  }
 
   if (args.length === 0) {
     // No arguments - run all crawlers
