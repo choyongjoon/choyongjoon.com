@@ -2,7 +2,12 @@
 
 import { spawn } from 'node:child_process';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { logger } from '../shared/logger';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Available crawlers configuration
 const AVAILABLE_CRAWLERS = {
@@ -15,6 +20,11 @@ const AVAILABLE_CRAWLERS = {
     file: 'compose-crawler.ts',
     name: 'Compose Coffee',
     description: 'Crawls Compose Coffee menu items',
+  },
+  mega: {
+    file: 'mega-crawler.ts',
+    name: 'Mega MGC Coffee',
+    description: 'Crawls Mega MGC Coffee menu items',
   },
 } as const;
 

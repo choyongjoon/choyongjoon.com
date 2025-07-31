@@ -24,6 +24,12 @@ const AVAILABLE_CAFES = {
     filePattern: 'compose-products-',
     description: 'Uploads Compose Coffee products to database',
   },
+  mega: {
+    name: 'Mega MGC Coffee',
+    slug: 'mega',
+    filePattern: 'mega-products-',
+    description: 'Uploads Mega MGC Coffee products to database',
+  },
 } as const;
 
 type CafeName = keyof typeof AVAILABLE_CAFES;
