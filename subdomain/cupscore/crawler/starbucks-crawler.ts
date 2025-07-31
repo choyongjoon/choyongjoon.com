@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PlaywrightCrawler } from 'crawlee';
+import type { Page } from 'playwright';
 import { logger } from '../shared/logger';
 
 interface Product {
@@ -15,9 +16,7 @@ interface Product {
   externalUrl: string;
 }
 
-async function extractProductData(page: {
-  evaluate: (fn: () => unknown) => Promise<unknown>;
-}): Promise<Product> {
+async function extractProductData(page: Page): Promise<Product> {
   const result = (await page.evaluate(() => {
     // Extract Korean name
     const nameElement = document.querySelector('.myAssignZone > h4');
@@ -130,6 +129,7 @@ const crawler = new PlaywrightCrawler({
       );
 
       // Try different selectors to find product links
+      // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Web scraper needs complex DOM extraction logic
       const productIds = await page.evaluate((regex) => {
         const selectors = [
           'a.goDrinkView',
@@ -173,7 +173,7 @@ const crawler = new PlaywrightCrawler({
             }
 
             // Try to extract product ID from href
-            if (href && href.includes('drink_view.do')) {
+            if (href?.includes('drink_view.do')) {
               const match = href.match(new RegExp(regex));
               if (match) {
                 ids.push(match[1]);
@@ -181,7 +181,7 @@ const crawler = new PlaywrightCrawler({
             }
 
             // Try to extract product ID from onclick
-            if (onclick && onclick.includes('product_cd')) {
+            if (onclick?.includes('product_cd')) {
               const match = onclick.match(new RegExp(regex));
               if (match) {
                 ids.push(match[1]);
@@ -192,7 +192,7 @@ const crawler = new PlaywrightCrawler({
             const innerHTML = (link as HTMLElement).innerHTML;
             if (innerHTML) {
               // Look for pattern like [9200000006301] in image URLs
-              const imgMatch = innerHTML.match(/\[(\d+)\]/);
+              const imgMatch = innerHTML.match(PRODUCT_CD_REGEX);
               if (imgMatch) {
                 ids.push(imgMatch[1]);
               }
