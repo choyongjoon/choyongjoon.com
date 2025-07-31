@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PlaywrightCrawler } from 'crawlee';
+import { PlaywrightCrawler, type Request } from 'crawlee';
 import type { Page } from 'playwright';
 import { logger } from '../shared/logger';
 
@@ -17,57 +17,341 @@ interface Product {
 }
 
 async function extractProductData(page: Page): Promise<Product> {
-  const result = (await page.evaluate(() => {
+  // Extract all data using Playwright locators instead of page.evaluate
+  const [
+    name,
+    nameEn,
+    description,
+    externalCategory,
+    externalImageUrl,
+    externalId,
+    externalUrl,
+  ] = await Promise.all([
     // Extract Korean name
-    const nameElement = document.querySelector('.myAssignZone > h4');
-    let name = nameElement?.textContent?.trim() || '';
+    page
+      .locator('.myAssignZone > h4')
+      .textContent()
+      .then((text) => text?.trim() || ''),
 
     // Extract English name
-    const nameEnElement = document.querySelector('.myAssignZone > h4 > span');
-    const nameEn = nameEnElement?.textContent?.trim() || '';
+    page
+      .locator('.myAssignZone > h4 > span')
+      .textContent()
+      .then((text) => text?.trim() || ''),
 
-    // Clean Korean name by removing English part
-    if (nameEn && name.includes(nameEn)) {
-      name = name.replace(nameEn, '').trim();
-    }
-
-    // Extract description
-    const descElement = document.querySelector('p.t1');
-    const description = descElement?.textContent?.trim() || '';
+    // Extract description (first p.t1 in product details)
+    page
+      .locator('.myAssignZone p.t1')
+      .first()
+      .textContent()
+      .then((text) => text?.trim() || ''),
 
     // Extract category
-    const categoryElement = document.querySelector('.cate');
-    const externalCategory = categoryElement?.textContent?.trim() || '';
+    page
+      .locator('.cate')
+      .textContent()
+      .then((text) => text?.trim() || ''),
 
     // Extract image
-    let externalImageUrl = '';
-    const imgElement = document.querySelector(
-      '.elevatezoom-gallery > img:nth-child(1)'
-    );
-    if (imgElement) {
-      externalImageUrl = (imgElement as HTMLImageElement).src;
-    }
+    page
+      .locator('.elevatezoom-gallery > img:nth-child(1)')
+      .getAttribute('src')
+      .then((src) => src || ''),
 
     // Extract ID from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const externalId = urlParams.get('product_cd') || '';
+    Promise.resolve(page.url()).then((url) => {
+      const urlParams = new URLSearchParams(new URL(url).search);
+      return urlParams.get('product_cd') || '';
+    }),
 
-    return {
-      name,
-      nameEn,
-      description,
-      externalCategory,
-      externalId,
-      externalImageUrl,
-      externalUrl: window.location.href,
-    };
-  })) as Product;
+    // Get current URL
+    Promise.resolve(page.url()),
+  ]);
 
-  return result;
+  // Clean Korean name by removing English part
+  let cleanName = name;
+  if (nameEn && name.includes(nameEn)) {
+    cleanName = name.replace(nameEn, '').trim();
+  }
+
+  return {
+    name: cleanName,
+    nameEn,
+    description,
+    externalCategory,
+    externalId,
+    externalImageUrl,
+    externalUrl,
+    price: null,
+    category: 'Drinks',
+  };
 }
 
-// Regex pattern for extracting product codes (defined at top level for performance)
-const PRODUCT_CD_REGEX = /product_cd=([^&]+)/;
+// Regex pattern for extracting product codes from image URLs (defined at top level for performance)
+const PRODUCT_CD_REGEX = /\[(\d+)\]/;
+
+// Helper function to extract product ID from link data
+function extractProductIdFromLink(
+  href: string,
+  onclick: string,
+  innerHTML: string
+): string[] {
+  const extractedIds: string[] = [];
+
+  // Try to extract product ID from href
+  if (href?.includes('drink_view.do')) {
+    const match = href.match(PRODUCT_CD_REGEX);
+    if (match) {
+      extractedIds.push(match[1]);
+    }
+  }
+
+  // Try to extract product ID from onclick
+  if (onclick?.includes('product_cd')) {
+    const match = onclick.match(PRODUCT_CD_REGEX);
+    if (match) {
+      extractedIds.push(match[1]);
+    }
+  }
+
+  // Extract product ID from image src in innerHTML
+  if (innerHTML) {
+    const imgMatch = innerHTML.match(PRODUCT_CD_REGEX);
+    if (imgMatch) {
+      extractedIds.push(imgMatch[1]);
+    }
+  }
+
+  return extractedIds;
+}
+
+// Helper function to get debug information about page links
+async function getPageDebugInfo(page: Page) {
+  const goDrinkViewLinks = page.locator('a.goDrinkView');
+  const allLinks = page.locator('a');
+  const goDrinkViewCount = await goDrinkViewLinks.count();
+  const totalLinksCount = await allLinks.count();
+  const bodyText = await page
+    .locator('body')
+    .textContent()
+    .then((text) => text?.substring(0, 500) || '');
+  const pageUrl = page.url();
+  const pageTitle = await page.title();
+
+  // Get first few goDrinkView links for debugging
+  const firstGoDrinkViewLinks: Array<{
+    href: string;
+    onclick: string;
+    text: string;
+    className: string;
+    innerHTML: string;
+  }> = [];
+
+  const linkCount = Math.min(5, goDrinkViewCount);
+  if (linkCount > 0) {
+    const linkPromises = Array.from({ length: linkCount }, async (_, i) => {
+      const link = goDrinkViewLinks.nth(i);
+      const [href, onclick, text, className, innerHTML] = await Promise.all([
+        link.getAttribute('href').then((h) => h || 'NO_HREF'),
+        link.getAttribute('onclick').then((o) => o || 'NO_ONCLICK'),
+        link.textContent().then((t) => t?.trim() || 'NO_TEXT'),
+        link.getAttribute('class').then((c) => c || 'NO_CLASS'),
+        link.innerHTML().then((h) => h?.substring(0, 200) || ''),
+      ]);
+
+      return {
+        href,
+        onclick,
+        text,
+        className,
+        innerHTML,
+      };
+    });
+
+    const linkResults = await Promise.all(linkPromises);
+    firstGoDrinkViewLinks.push(...linkResults);
+  }
+
+  return {
+    goDrinkViewCount,
+    totalLinksCount,
+    bodyText,
+    firstGoDrinkViewLinks,
+    pageUrl,
+    pageTitle,
+  };
+}
+
+// Helper function to find and extract product IDs from page
+async function extractProductIds(page: Page) {
+  const selectors = [
+    'a.goDrinkView',
+    'a[href*="drink_view.do"]',
+    'a[href*="product_cd"]',
+    '.product-item a',
+    '.drink-item a',
+    'a[onclick*="goDrinkView"]',
+  ];
+
+  let links: ReturnType<typeof page.locator> | null = null;
+  let usedSelector = '';
+
+  // Try each selector until we find one that works
+  const selectorPromises = selectors.map(async (selector) => {
+    const foundLinks = page.locator(selector);
+    const count = await foundLinks.count();
+    return { selector, foundLinks, count };
+  });
+
+  const selectorResults = await Promise.all(selectorPromises);
+  for (const result of selectorResults) {
+    if (result.count > 0) {
+      links = result.foundLinks;
+      usedSelector = result.selector;
+      break;
+    }
+  }
+
+  const ids: string[] = [];
+  let linksFound = 0;
+  const sampleHrefs: string[] = [];
+  const sampleOnclicks: string[] = [];
+
+  if (links) {
+    linksFound = await links.count();
+
+    // Process all links to extract product IDs in parallel
+    const linkProcessPromises = Array.from(
+      { length: linksFound },
+      async (_, i) => {
+        const link = links?.nth(i);
+        if (!link) {
+          return { href: 'NO_HREF', onclick: 'NO_ONCLICK', ids: [] };
+        }
+        const [href, onclick, innerHTML] = await Promise.all([
+          link.getAttribute('href').then((h) => h || ''),
+          link.getAttribute('onclick').then((o) => o || ''),
+          link.innerHTML().then((h) => h || ''),
+        ]);
+
+        const extractedIds = extractProductIdFromLink(href, onclick, innerHTML);
+
+        return {
+          href: href || 'NO_HREF',
+          onclick: onclick || 'NO_ONCLICK',
+          ids: extractedIds,
+        };
+      }
+    );
+
+    const linkResults = await Promise.all(linkProcessPromises);
+
+    // Collect debug info and IDs
+    for (const result of linkResults) {
+      if (sampleHrefs.length < 5) {
+        sampleHrefs.push(result.href);
+        sampleOnclicks.push(result.onclick);
+      }
+      ids.push(...result.ids);
+    }
+  }
+
+  return {
+    ids,
+    usedSelector,
+    linksFound,
+    sampleHrefs,
+    sampleOnclicks,
+  };
+}
+
+// Handle main menu page - discover and enqueue product pages
+async function handleMainMenuPage(
+  page: Page,
+  crawlerInstance: PlaywrightCrawler
+) {
+  logger.info('Processing drink list page');
+
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(5000);
+
+  // Take a screenshot for debugging
+  const screenshotPath = path.join(
+    process.cwd(),
+    'crawler',
+    'crawler-outputs',
+    'debug-screenshot.png'
+  );
+  await page.screenshot({ path: screenshotPath, fullPage: true });
+  logger.info(`Screenshot saved to: ${screenshotPath}`);
+
+  // Get page debug information
+  const pageInfo = await getPageDebugInfo(page);
+
+  logger.info(`Page title: "${pageInfo.pageTitle}"`);
+  logger.info(`Body text sample: "${pageInfo.bodyText.substring(0, 200)}"`);
+  logger.info(`Found ${pageInfo.goDrinkViewCount} goDrinkView links`);
+  logger.info(
+    `Sample innerHTML: ${pageInfo.firstGoDrinkViewLinks[0]?.innerHTML?.substring(0, 200) || 'none'}`
+  );
+
+  // Extract product IDs from the page
+  const productIds = await extractProductIds(page);
+
+  logger.info(
+    `Selector used: ${productIds.usedSelector}, Links found: ${productIds.linksFound}`
+  );
+  logger.info(`Extracted IDs: ${productIds.ids.join(', ')}`);
+  logger.info(`Found ${productIds.ids.length} products to crawl`);
+
+  // Prepare all product URLs
+  const productRequests = productIds.ids.map((productId) => ({
+    url: `https://www.starbucks.co.kr/menu/drink_view.do?product_cd=${productId}`,
+    userData: { productId, isProductPage: true },
+  }));
+
+  // Enqueue all product pages at once
+  await crawlerInstance.addRequests(productRequests);
+
+  logger.info(`Enqueued ${productIds.ids.length} product pages for processing`);
+}
+
+// Handle individual product page - extract product data
+async function handleProductPage(
+  page: Page,
+  request: Request,
+  crawlerInstance: PlaywrightCrawler
+) {
+  const productId = request.userData.productId;
+  logger.info(`Processing product page: ${productId}`);
+
+  try {
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+
+    const product = await extractProductData(page);
+    if (product.name && product.externalId) {
+      const finalProduct: Product = {
+        ...product,
+        price: null,
+        category: 'Drinks',
+      };
+
+      // Save individual product to shared dataset
+      await crawlerInstance.pushData(finalProduct);
+
+      logger.info(
+        `✅ Extracted: ${finalProduct.name} (${finalProduct.nameEn}) - ID: ${finalProduct.externalId}`
+      );
+    } else {
+      logger.warn(
+        `⚠️ Failed to extract complete product data for ID: ${productId}`
+      );
+    }
+  } catch (error) {
+    logger.error(`❌ Error processing product ${productId}: ${error}`);
+  }
+}
 
 const crawler = new PlaywrightCrawler({
   launchContext: {
@@ -79,213 +363,21 @@ const crawler = new PlaywrightCrawler({
   async requestHandler({ page, request, crawler: crawlerInstance }) {
     const url = request.url;
 
-    // Handle list page - extract product IDs and enqueue product pages
+    // Route to appropriate handler based on URL and request data
     if (url.includes('drink_list.do')) {
-      logger.info('Processing drink list page');
-
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(5000);
-
-      // Take a screenshot for debugging
-      const screenshotPath = path.join(
-        process.cwd(),
-        'crawler',
-        'crawler-outputs',
-        'debug-screenshot.png'
-      );
-      await page.screenshot({ path: screenshotPath, fullPage: true });
-      logger.info(`Screenshot saved to: ${screenshotPath}`);
-
-      // Debug: Check what's available on the page
-      const pageInfo = await page.evaluate(() => {
-        const links = document.querySelectorAll('a.goDrinkView');
-        const allLinks = document.querySelectorAll('a');
-        const bodyText = document.body.innerText.substring(0, 500);
-
-        return {
-          goDrinkViewCount: links.length,
-          totalLinksCount: allLinks.length,
-          bodyText,
-          firstGoDrinkViewLinks: Array.from(links)
-            .slice(0, 5)
-            .map((link) => ({
-              href: (link as HTMLAnchorElement).href || 'NO_HREF',
-              onclick:
-                (link as HTMLElement).getAttribute('onclick') || 'NO_ONCLICK',
-              text: link.textContent?.trim() || 'NO_TEXT',
-              className: link.className || 'NO_CLASS',
-              innerHTML: link.innerHTML.substring(0, 200),
-            })),
-          pageUrl: window.location.href,
-          pageTitle: document.title,
-        };
-      });
-
-      logger.info('Page title:', pageInfo.pageTitle);
-      logger.info('Body text sample:', pageInfo.bodyText.substring(0, 200));
-      logger.info(
-        'First few product links:',
-        JSON.stringify(pageInfo.firstGoDrinkViewLinks, null, 2)
-      );
-
-      // Try different selectors to find product links
-      // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Web scraper needs complex DOM extraction logic
-      const productIds = await page.evaluate((regex) => {
-        const selectors = [
-          'a.goDrinkView',
-          'a[href*="drink_view.do"]',
-          'a[href*="product_cd"]',
-          '.product-item a',
-          '.drink-item a',
-          'a[onclick*="goDrinkView"]',
-        ];
-
-        let links: NodeListOf<Element> | null = null;
-        let usedSelector = '';
-
-        // Try each selector until we find one that works
-        for (const selector of selectors) {
-          const foundLinks = document.querySelectorAll(selector);
-          if (foundLinks.length > 0) {
-            links = foundLinks;
-            usedSelector = selector;
-            break;
-          }
-        }
-
-        const ids: string[] = [];
-
-        if (links) {
-          const sampleHrefs: string[] = [];
-          const sampleOnclicks: string[] = [];
-
-          for (const link of links) {
-            const href = (link as HTMLAnchorElement).href;
-            const onclick =
-              (link as HTMLAnchorElement).onclick?.toString() ||
-              (link as HTMLElement).getAttribute('onclick') ||
-              '';
-
-            // Collect first 5 hrefs and onclicks for debugging
-            if (sampleHrefs.length < 5) {
-              sampleHrefs.push(href || 'NO_HREF');
-              sampleOnclicks.push(onclick || 'NO_ONCLICK');
-            }
-
-            // Try to extract product ID from href
-            if (href?.includes('drink_view.do')) {
-              const match = href.match(new RegExp(regex));
-              if (match) {
-                ids.push(match[1]);
-              }
-            }
-
-            // Try to extract product ID from onclick
-            if (onclick?.includes('product_cd')) {
-              const match = onclick.match(new RegExp(regex));
-              if (match) {
-                ids.push(match[1]);
-              }
-            }
-
-            // Extract product ID from image src in innerHTML (new approach)
-            const innerHTML = (link as HTMLElement).innerHTML;
-            if (innerHTML) {
-              // Look for pattern like [9200000006301] in image URLs
-              const imgMatch = innerHTML.match(PRODUCT_CD_REGEX);
-              if (imgMatch) {
-                ids.push(imgMatch[1]);
-              }
-            }
-          }
-
-          return {
-            ids,
-            usedSelector,
-            linksFound: links?.length || 0,
-            sampleHrefs,
-            sampleOnclicks,
-          };
-        }
-
-        return {
-          ids,
-          usedSelector,
-          linksFound: 0,
-          sampleHrefs: [],
-          sampleOnclicks: [],
-        };
-      }, PRODUCT_CD_REGEX.source);
-
-      logger.info(
-        `Selector used: ${productIds.usedSelector}, Links found: ${productIds.linksFound}`
-      );
-      logger.info(
-        'Sample hrefs:',
-        JSON.stringify(productIds.sampleHrefs, null, 2)
-      );
-      logger.info(
-        'Sample onclicks:',
-        JSON.stringify(productIds.sampleOnclicks, null, 2)
-      );
-      const ids = productIds.ids;
-
-      logger.info(`Found ${ids.length} products to crawl`);
-
-      // Prepare all product URLs
-      const productRequests = ids.map((productId) => ({
-        url: `https://www.starbucks.co.kr/menu/drink_view.do?product_cd=${productId}`,
-        userData: { productId, isProductPage: true },
-      }));
-
-      // Enqueue all product pages at once
-      await crawlerInstance.addRequests(productRequests);
-
-      logger.info(`Enqueued ${ids.length} product pages for processing`);
-      return;
-    }
-
-    // Handle individual product pages
-    if (request.userData?.isProductPage) {
-      const productId = request.userData.productId;
-      logger.info(`Processing product page: ${productId}`);
-
-      try {
-        await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(2000);
-
-        const product = await extractProductData(page);
-        if (product.name && product.externalId) {
-          const finalProduct: Product = {
-            ...product,
-            price: null,
-            category: 'Drinks',
-          };
-
-          // Save individual product to shared dataset
-          await crawlerInstance.pushData(finalProduct);
-
-          logger.info(
-            `✅ Extracted: ${finalProduct.name} (${finalProduct.nameEn}) - ID: ${finalProduct.externalId}`
-          );
-        } else {
-          logger.warn(
-            `⚠️ Failed to extract complete product data for ID: ${productId}`
-          );
-        }
-      } catch (error) {
-        logger.error(`❌ Error processing product ${productId}: ${error}`);
-      }
+      await handleMainMenuPage(page, crawlerInstance);
+    } else if (request.userData?.isProductPage) {
+      await handleProductPage(page, request, crawlerInstance);
     }
   },
 
   // Allow multiple concurrent requests for efficiency
-  maxConcurrency: 5,
-  maxRequestsPerCrawl: 200, // Limited for testing - increase for full crawl
+  maxConcurrency: 3,
+  maxRequestsPerCrawl: 200, // Full crawl - all products
 
   // Handle failures gracefully
   maxRequestRetries: 2,
-  requestHandlerTimeoutSecs: 60,
+  requestHandlerTimeoutSecs: 45,
 });
 
 (async () => {
