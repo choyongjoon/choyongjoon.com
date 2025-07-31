@@ -89,7 +89,7 @@ for (let i = 0; i < Math.min(products.length, 10); i++) {
   const rawProduct = products[i];
 
   try {
-    if (!(rawProduct.name && rawProduct.id_origin)) {
+    if (!(rawProduct.name && rawProduct.externalId)) {
       results.skipped++;
       continue;
     }
@@ -97,14 +97,14 @@ for (let i = 0; i < Math.min(products.length, 10); i++) {
     const processed = {
       name: rawProduct.name.trim(),
       category: mapCategory(
-        rawProduct.category_origin || rawProduct.category || 'Other'
+        rawProduct.externalCategory || rawProduct.category || 'Other'
       ),
       price: parsePrice(rawProduct.price),
       description: (rawProduct.description || '').trim(),
       calories: undefined,
-      imageUrl: rawProduct.image || '',
+      imageUrl: rawProduct.externalImageUrl || '',
       isDiscontinued: false,
-      externalId: rawProduct.id_origin,
+      externalId: rawProduct.externalId,
     };
 
     results.processed++;
@@ -146,12 +146,12 @@ let withPrices = 0;
 let validProducts = 0;
 
 for (const product of products) {
-  if (product.name && product.id_origin) {
+  if (product.name && product.externalId) {
     validProducts++;
-    if (product.category_origin) {
-      categories.add(mapCategory(product.category_origin));
+    if (product.externalCategory) {
+      categories.add(mapCategory(product.externalCategory));
     }
-    if (product.image) {
+    if (product.externalImageUrl) {
       withImages++;
     }
     if (parsePrice(product.price) !== undefined) {

@@ -6,11 +6,11 @@ import { mutation } from './_generated/server';
 
 interface CrawlerProduct {
   name: string;
-  name_en: string;
+  nameEn: string;
   description: string;
-  category_origin: string;
-  id_origin: string;
-  image: string;
+  externalCategory: string;
+  externalId: string;
+  externalImageUrl: string;
   url: string;
   price: string;
   category: string;
@@ -46,7 +46,7 @@ function transformProductData(
     const crawlerProduct = rawProduct as CrawlerProduct;
 
     // Skip if missing required fields
-    if (!(crawlerProduct.name && crawlerProduct.id_origin)) {
+    if (!(crawlerProduct.name && crawlerProduct.externalId)) {
       results.skipped++;
       return null;
     }
@@ -54,14 +54,14 @@ function transformProductData(
     const processed: ProcessedProduct = {
       name: crawlerProduct.name.trim(),
       category: mapCategory(
-        crawlerProduct.category_origin || crawlerProduct.category || 'Other'
+        crawlerProduct.externalCategory || crawlerProduct.category || 'Other'
       ),
       price: parsePrice(crawlerProduct.price),
       description: crawlerProduct.description?.trim() || '',
       calories: undefined, // Not available in crawler data
-      imageUrl: crawlerProduct.image || '',
+      imageUrl: crawlerProduct.externalImageUrl || '',
       isDiscontinued: false, // Default to false, can be updated later
-      externalId: crawlerProduct.id_origin,
+      externalId: crawlerProduct.externalId,
     };
 
     results.processed++;
@@ -230,7 +230,7 @@ export const getUploadStats = mutation({
       recentlyAdded: recentlyAdded.length,
       recentlyUpdated: recentlyUpdated.length,
       categories: [...new Set(products.map((p) => p.category))].length,
-      withImages: products.filter((p) => p.imageUrl).length,
+      withImages: products.filter((p) => p.externalImageUrl).length,
       withPrices: products.filter((p) => p.price).length,
     };
   },

@@ -61,7 +61,7 @@ export const upsertProduct = mutation({
     price: v.optional(v.number()),
     description: v.optional(v.string()),
     calories: v.optional(v.number()),
-    imageUrl: v.optional(v.string()),
+    externalImageUrl: v.optional(v.string()),
     isDiscontinued: v.boolean(),
     externalId: v.string(),
   },
@@ -80,9 +80,7 @@ export const upsertProduct = mutation({
         existing.category !== args.category ||
         existing.price !== args.price ||
         existing.description !== args.description ||
-        existing.calories !== args.calories ||
-        existing.imageUrl !== args.imageUrl ||
-        existing.isDiscontinued !== args.isDiscontinued;
+        existing.externalImageUrl !== args.externalImageUrl;
 
       if (hasChanges) {
         await ctx.db.patch(existing._id, {

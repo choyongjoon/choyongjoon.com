@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as cafes from "../cafes.js";
+import type * as dataUploader from "../dataUploader.js";
 import type * as products from "../products.js";
 import type * as stats from "../stats.js";
 
@@ -27,6 +28,7 @@ import type * as stats from "../stats.js";
  */
 declare const fullApi: ApiFromModules<{
   cafes: typeof cafes;
+  dataUploader: typeof dataUploader;
   products: typeof products;
   stats: typeof stats;
 }>;

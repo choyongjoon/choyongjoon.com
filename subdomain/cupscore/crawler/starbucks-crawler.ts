@@ -5,13 +5,13 @@ import { logger } from '../shared/logger';
 
 interface Product {
   name: string;
-  name_en: string;
+  nameEn: string;
   description: string;
   price: string | null;
-  image: string;
+  externalImageUrl: string;
   category: string;
-  category_origin: string;
-  id_origin: string;
+  externalCategory: string;
+  externalId: string;
   url: string;
 }
 
@@ -25,11 +25,11 @@ async function extractProductData(page: {
 
     // Extract English name
     const nameEnElement = document.querySelector('.myAssignZone > h4 > span');
-    const name_en = nameEnElement?.textContent?.trim() || '';
+    const nameEn = nameEnElement?.textContent?.trim() || '';
 
     // Clean Korean name by removing English part
-    if (name_en && name.includes(name_en)) {
-      name = name.replace(name_en, '').trim();
+    if (nameEn && name.includes(nameEn)) {
+      name = name.replace(nameEn, '').trim();
     }
 
     // Extract description
@@ -38,28 +38,28 @@ async function extractProductData(page: {
 
     // Extract category
     const categoryElement = document.querySelector('.cate');
-    const category_origin = categoryElement?.textContent?.trim() || '';
+    const externalCategory = categoryElement?.textContent?.trim() || '';
 
     // Extract image
-    let image = '';
+    let externalImageUrl = '';
     const imgElement = document.querySelector(
       '.elevatezoom-gallery > img:nth-child(1)'
     );
     if (imgElement) {
-      image = (imgElement as HTMLImageElement).src;
+      externalImageUrl = (imgElement as HTMLImageElement).src;
     }
 
     // Extract ID from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const id_origin = urlParams.get('product_cd') || '';
+    const externalId = urlParams.get('product_cd') || '';
 
     return {
       name,
-      name_en,
+      nameEn,
       description,
-      category_origin,
-      id_origin,
-      image,
+      externalCategory,
+      externalId,
+      externalImageUrl,
       url: window.location.href,
     };
   });
@@ -119,7 +119,7 @@ const crawler = new PlaywrightCrawler({
 
             products.push(finalProduct);
             log.info(
-              `✅ Extracted: ${finalProduct.name} (${finalProduct.name_en})`
+              `✅ Extracted: ${finalProduct.name} (${finalProduct.nameEn})`
             );
           }
         }
@@ -148,7 +148,7 @@ const crawler = new PlaywrightCrawler({
       logger.info('=== CRAWL SUMMARY ===');
       logger.info(`Total products extracted: ${products.length}`);
       for (const [i, p] of products.entries()) {
-        logger.info(`${i + 1}. ${p.name} (${p.name_en}) - ID: ${p.id_origin}`);
+        logger.info(`${i + 1}. ${p.name} (${p.nameEn}) - ID: ${p.externalId}`);
       }
     }
   },
