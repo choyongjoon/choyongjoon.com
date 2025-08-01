@@ -27,6 +27,11 @@ const AVAILABLE_CAFES = {
     slug: 'mega',
     filePattern: 'mega-products-',
   },
+  paik: {
+    name: '빽다방',
+    slug: 'paik',
+    filePattern: 'paik-products-',
+  },
 } as const;
 
 type CafeSlug = keyof typeof AVAILABLE_CAFES;

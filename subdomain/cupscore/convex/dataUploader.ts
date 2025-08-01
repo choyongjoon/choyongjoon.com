@@ -40,6 +40,10 @@ async function uploadProductsToDatabase(
       const result = await ctx.runMutation(api.products.upsertProduct, {
         ...product,
         cafeId,
+        nameEn: product.nameEn ?? undefined,
+        description: product.description ?? undefined,
+        externalCategory: product.externalCategory ?? undefined,
+        externalImageUrl: product.externalImageUrl ?? undefined,
         price: product.price ?? undefined,
         downloadImages,
       });
