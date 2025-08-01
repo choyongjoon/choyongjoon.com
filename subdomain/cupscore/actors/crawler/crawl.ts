@@ -27,6 +27,10 @@ const AVAILABLE_CRAWLERS = {
     file: 'paik-crawler.ts',
     name: '빽다방',
   },
+  ediya: {
+    file: 'ediya-crawler.ts',
+    name: '이디야',
+  },
 } as const;
 
 type CrawlerName = keyof typeof AVAILABLE_CRAWLERS;

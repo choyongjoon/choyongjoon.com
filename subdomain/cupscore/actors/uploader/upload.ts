@@ -28,6 +28,10 @@ const AVAILABLE_CAFES = {
     name: '빽다방',
     slug: 'paik',
   },
+  ediya: {
+    name: '이디야',
+    slug: 'ediya',
+  },
 } as const;
 
 type CafeSlug = keyof typeof AVAILABLE_CAFES;

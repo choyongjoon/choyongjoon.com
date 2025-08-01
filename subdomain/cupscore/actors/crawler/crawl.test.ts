@@ -31,6 +31,11 @@ const AVAILABLE_CRAWLERS = {
     name: '빽다방',
     brand: "Paik's Coffee",
   },
+  ediya: {
+    file: 'ediya-crawler.ts',
+    name: '이디야',
+    brand: 'Ediya Coffee',
+  },
 } as const;
 
 type CrawlerName = keyof typeof AVAILABLE_CRAWLERS;

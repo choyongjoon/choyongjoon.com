@@ -32,6 +32,11 @@ const AVAILABLE_CAFES = {
     slug: 'paik',
     brand: "Paik's Coffee",
   },
+  ediya: {
+    name: '이디야',
+    slug: 'ediya',
+    brand: 'Ediya Coffee',
+  },
 } as const;
 
 type CafeSlug = keyof typeof AVAILABLE_CAFES;

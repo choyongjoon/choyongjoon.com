@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": 1754055500000,
+  "lastUpdated": 1754090004465,
   "rules": [
     {
       "id": "direct-coffee",
@@ -94,7 +94,7 @@
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 28
+      "usageCount": 29
     },
     {
       "id": "pattern-tea-keywords",
@@ -126,7 +126,7 @@
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1754055500000,
-      "usageCount": 0,
+      "usageCount": 2,
       "priority": 1
     },
     {
@@ -152,7 +152,7 @@
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1754055500000,
-      "usageCount": 0,
+      "usageCount": 1,
       "priority": 2
     },
     {
@@ -222,7 +222,7 @@
       "confidence": "medium",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 3
+      "usageCount": 6
     },
     {
       "id": "pattern-ade-keywords",
@@ -234,7 +234,7 @@
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 0
+      "usageCount": 10
     },
     {
       "id": "human-direct-1754054297397",
@@ -391,11 +391,59 @@
       "createdBy": "system",
       "createdAt": 1754055300000,
       "usageCount": 0
+    },
+    {
+      "id": "human-direct-1754089824253",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "COFFEE"
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754089824253,
+      "usageCount": 7
+    },
+    {
+      "id": "human-direct-1754089843019",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "BLENDING TEA"
+      },
+      "targetCategory": "차",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754089843019,
+      "usageCount": 8
+    },
+    {
+      "id": "human-direct-1754089851297",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "FLATCCINO"
+      },
+      "targetCategory": "블렌디드",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754089851297,
+      "usageCount": 8
+    },
+    {
+      "id": "human-direct-1754090004465",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "DECAF"
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754090004465,
+      "usageCount": 1
     }
   ],
   "stats": {
-    "totalCategorizations": 209,
-    "humanLearnings": 10,
-    "averageConfidence": 2.6794258373205757
+    "totalCategorizations": 275,
+    "humanLearnings": 15,
+    "averageConfidence": 2.585454545454547
   }
 }
