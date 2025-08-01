@@ -65,7 +65,6 @@ async function extractProductData(
 
     // Generate a product if we have any name
     if (name && name.length > 0) {
-      const productId = Math.random().toString(36).substring(7);
       const product = {
         name,
         nameEn,
@@ -74,7 +73,7 @@ async function extractProductData(
         externalImageUrl: imageUrl,
         category: 'Drinks',
         externalCategory: categoryName,
-        externalId: `mega_${productId}`,
+        externalId: `mega_${name}`,
         externalUrl: '', // Will be filled by caller
       };
 
