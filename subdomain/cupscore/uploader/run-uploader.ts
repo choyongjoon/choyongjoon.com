@@ -13,37 +13,35 @@ const __dirname = path.dirname(__filename);
 // Available cafes configuration
 const AVAILABLE_CAFES = {
   starbucks: {
-    name: 'Starbucks Korea',
+    name: '스타벅스',
     slug: 'starbucks',
     filePattern: 'starbucks-products-',
-    description: 'Uploads Starbucks Korea products to database',
   },
   compose: {
-    name: 'Compose Coffee',
+    name: '컴포즈커피',
     slug: 'compose',
     filePattern: 'compose-products-',
-    description: 'Uploads Compose Coffee products to database',
   },
   mega: {
-    name: 'Mega MGC Coffee',
+    name: '메가커피',
     slug: 'mega',
     filePattern: 'mega-products-',
-    description: 'Uploads Mega MGC Coffee products to database',
   },
 } as const;
 
-type CafeName = keyof typeof AVAILABLE_CAFES;
+type CafeSlug = keyof typeof AVAILABLE_CAFES;
 
 interface UploadOptions {
   dryRun?: boolean;
+  downloadImages?: boolean;
   verbose?: boolean;
   file?: string;
 }
 
 // Helper function to handle cafe name validation and addition
-function handleCafeName(arg: string, cafes: CafeName[]): void {
+function handleCafeSlug(arg: string, cafeSlugs: CafeSlug[]): void {
   if (arg in AVAILABLE_CAFES) {
-    cafes.push(arg as CafeName);
+    cafeSlugs.push(arg as CafeSlug);
   } else {
     logger.error(`Invalid cafe name: ${arg}`);
     logger.info(`Available cafes: ${Object.keys(AVAILABLE_CAFES).join(', ')}`);
@@ -52,41 +50,46 @@ function handleCafeName(arg: string, cafes: CafeName[]): void {
 }
 
 // Parse command line arguments
-function parseArgs(): { cafes: CafeName[]; options: UploadOptions } {
+function parseArgs(): { cafeSlugs: CafeSlug[]; options: UploadOptions } {
   const args = process.argv.slice(2);
   const options: UploadOptions = {};
-  const cafes: CafeName[] = [];
+  const cafeSlugs: CafeSlug[] = [];
 
   // Parse flags
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
-    if (arg === '--dry-run') {
-      options.dryRun = true;
-    } else if (arg === '--verbose' || arg === '-v') {
-      options.verbose = true;
-    } else if (arg === '--file') {
-      options.file = args[i + 1];
-      i++; // Skip next argument as it's the file path
-    } else if (arg === '--help' || arg === '-h') {
-      printHelp();
-      process.exit(0);
-    } else if (arg.startsWith('--')) {
-      logger.error(`Unknown option: ${arg}`);
-      printHelp();
-      process.exit(1);
-    } else {
-      // This should be a cafe name
-      handleCafeName(arg, cafes);
+    switch (arg) {
+      case '--dry-run':
+        options.dryRun = true;
+        break;
+      case '--download-images':
+        options.downloadImages = true;
+        break;
+      case '--verbose':
+        options.verbose = true;
+        break;
+      case '--file':
+        options.file = args[i + 1];
+        i++; // Skip next argument as it's the file path
+        break;
+      case '--help':
+        printHelp();
+        process.exit(0);
+        break;
+      default:
+        // This should be a cafe name
+        handleCafeSlug(arg, cafeSlugs);
+        break;
     }
   }
 
   // If no cafes specified, upload all available cafes
-  if (cafes.length === 0) {
-    cafes.push(...(Object.keys(AVAILABLE_CAFES) as CafeName[]));
+  if (cafeSlugs.length === 0) {
+    cafeSlugs.push(...(Object.keys(AVAILABLE_CAFES) as CafeSlug[]));
   }
 
-  return { cafes, options };
+  return { cafeSlugs, options };
 }
 
 // Find the latest file for a specific cafe
@@ -111,7 +114,7 @@ function findLatestFile(cafePattern: string): string | null {
 }
 
 // Upload products for a single cafe
-function uploadCafe(cafeName: CafeName, options: UploadOptions): Promise<void> {
+function uploadCafe(cafeName: CafeSlug, options: UploadOptions): Promise<void> {
   return new Promise((resolve, reject) => {
     const cafe = AVAILABLE_CAFES[cafeName];
     const uploaderPath = path.join(__dirname, 'upload-products.ts');
@@ -129,15 +132,12 @@ function uploadCafe(cafeName: CafeName, options: UploadOptions): Promise<void> {
     }
 
     logger.info(`🚀 Starting ${cafe.name} upload...`);
-    logger.info(`📄 Description: ${cafe.description}`);
     logger.info(`📁 File: ${path.basename(filePath)}`);
 
     // Build command arguments
     const args = [
       uploaderPath,
       'upload',
-      '--cafe-name',
-      cafe.name,
       '--cafe-slug',
       cafe.slug,
       '--file',
@@ -146,6 +146,10 @@ function uploadCafe(cafeName: CafeName, options: UploadOptions): Promise<void> {
 
     if (options.dryRun) {
       args.push('--dry-run');
+    }
+
+    if (options.downloadImages) {
+      args.push('--download-images');
     }
 
     if (options.verbose) {
@@ -180,41 +184,31 @@ function printHelp(): void {
 🚀 Multi-Cafe Uploader Runner
 
 Usage:
-  pnpm upload                           # Upload all cafes
-  pnpm upload starbucks                 # Upload only Starbucks
-  pnpm upload starbucks compose         # Upload Starbucks and Compose
-  pnpm upload --dry-run                 # Preview all uploads without uploading
-  pnpm upload starbucks --verbose       # Upload Starbucks with detailed output
+  pnpm upload                             # Upload all cafes
+  pnpm upload starbucks                   # Upload only Starbucks
+  pnpm upload starbucks compose           # Upload Starbucks and Compose
 
 Available Cafes:
 ${Object.entries(AVAILABLE_CAFES)
-  .map(
-    ([key, cafe]) => `  ${key.padEnd(10)} - ${cafe.name} (${cafe.description})`
-  )
+  .map(([key, cafe]) => `  ${key.padEnd(10)} - ${cafe.name}`)
   .join('\n')}
 
 Options:
   --dry-run          Preview changes without uploading to database
+  --download-images  Download external images to Convex storage during upload
   --verbose, -v      Show detailed output during upload
   --file <path>      Use specific file instead of latest from crawler-outputs/
   --help, -h         Show this help message
-
-Examples:
-  pnpm upload                                    # Upload all cafes
-  pnpm upload starbucks                          # Upload only Starbucks  
-  pnpm upload compose --dry-run                  # Preview Compose upload
-  pnpm upload --file ./custom-products.json     # Upload specific file to all cafes
-  pnpm upload starbucks --verbose               # Upload Starbucks with detailed logs
 `);
 }
 
 // Main execution function
 async function main() {
   try {
-    const { cafes, options } = parseArgs();
+    const { cafeSlugs, options } = parseArgs();
 
     logger.info('🎯 Multi-Cafe Uploader Starting');
-    logger.info(`📋 Cafes to upload: ${cafes.join(', ')}`);
+    logger.info(`📋 Cafes to upload: ${cafeSlugs.join(', ')}`);
     if (options.dryRun) {
       logger.info('🔍 DRY RUN MODE - No data will be uploaded');
     }
@@ -225,18 +219,18 @@ async function main() {
     let failCount = 0;
 
     // Upload cafes sequentially to avoid database conflicts
-    for (const cafeName of cafes) {
+    for (const cafeSlug of cafeSlugs) {
       try {
         // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing is intentional for database uploads
-        await uploadCafe(cafeName, options);
+        await uploadCafe(cafeSlug, options);
         successCount++;
       } catch (error) {
-        logger.error(`Failed to upload ${cafeName}: ${error}`);
+        logger.error(`Failed to upload ${cafeSlug}: ${error}`);
         failCount++;
       }
 
       // Add a small delay between uploads
-      if (cafes.indexOf(cafeName) < cafes.length - 1) {
+      if (cafeSlugs.indexOf(cafeSlug) < cafeSlugs.length - 1) {
         logger.info('⏳ Waiting 2 seconds before next upload...');
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
@@ -248,8 +242,8 @@ async function main() {
     // Final summary
     logger.info('='.repeat(50));
     logger.info('📊 UPLOAD RUN SUMMARY');
-    logger.info(`✅ Successful: ${successCount}/${cafes.length} cafes`);
-    logger.info(`❌ Failed: ${failCount}/${cafes.length} cafes`);
+    logger.info(`✅ Successful: ${successCount}/${cafeSlugs.length} cafes`);
+    logger.info(`❌ Failed: ${failCount}/${cafeSlugs.length} cafes`);
     logger.info(`⏱️  Total time: ${totalTime} seconds`);
 
     if (failCount > 0) {
