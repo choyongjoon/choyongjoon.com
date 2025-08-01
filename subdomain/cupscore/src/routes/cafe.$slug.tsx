@@ -5,6 +5,7 @@ import type { Id } from 'convex/_generated/dataModel';
 import { useState } from 'react';
 import { api } from '../../convex/_generated/api';
 import { ProductImage } from '../components/ProductImage';
+import { getOrderedCategories } from '../utils/categories';
 
 export const Route = createFileRoute('/cafe/$slug')({
   component: CafePage,
@@ -28,9 +29,10 @@ function CafePage() {
     })
   );
 
-  const categories = Array.from(
+  const availableCategories = Array.from(
     new Set(products?.map((p) => p.category) || [])
   );
+  const categories = getOrderedCategories(availableCategories);
   const filteredProducts =
     selectedCategory === 'all'
       ? products
@@ -81,7 +83,7 @@ function CafePage() {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
           {filteredProducts?.map((product) => (
             <div
               className="card bg-base-200 shadow-md transition-shadow hover:shadow-lg"

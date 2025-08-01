@@ -1,0 +1,401 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": 1754055500000,
+  "rules": [
+    {
+      "id": "direct-coffee",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "커피"
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 20
+    },
+    {
+      "id": "direct-tea",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "차"
+      },
+      "targetCategory": "차",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 0
+    },
+    {
+      "id": "direct-blended",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "블렌디드"
+      },
+      "targetCategory": "블렌디드",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 10
+    },
+    {
+      "id": "direct-smoothie",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "스무디"
+      },
+      "targetCategory": "스무디",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 0
+    },
+    {
+      "id": "direct-juice",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "주스"
+      },
+      "targetCategory": "주스",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 0
+    },
+    {
+      "id": "direct-ade",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "에이드"
+      },
+      "targetCategory": "에이드",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 0
+    },
+    {
+      "id": "pattern-coffee-keywords",
+      "type": "pattern",
+      "condition": {
+        "nameContains": [
+          "아메리카노",
+          "라떼",
+          "카푸치노",
+          "에스프레소",
+          "모카",
+          "마키아또",
+          "콜드브루",
+          "헛개리카노",
+          "메가리카노"
+        ]
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 28
+    },
+    {
+      "id": "pattern-tea-keywords",
+      "type": "pattern",
+      "condition": {
+        "nameContains": [
+          "차이",
+          "얼그레이",
+          "녹차",
+          "홍차",
+          "허브티",
+          "캐모마일",
+          "페퍼민트"
+        ]
+      },
+      "targetCategory": "차",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 0
+    },
+    {
+      "id": "pattern-strawberry-latte-exclusion",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["딸기라떼", "딸기 라떼", "멜론라떼"]
+      },
+      "targetCategory": "그 외",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055500000,
+      "usageCount": 0,
+      "priority": 1
+    },
+    {
+      "id": "pattern-refresher-exclusion",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["리프레셔"]
+      },
+      "targetCategory": "그 외",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055500000,
+      "usageCount": 0,
+      "priority": 1
+    },
+    {
+      "id": "pattern-coffee-ending",
+      "type": "pattern",
+      "condition": {
+        "nameEndsWith": ["커피"]
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055500000,
+      "usageCount": 0,
+      "priority": 2
+    },
+    {
+      "id": "pattern-tea-latte-ending",
+      "type": "pattern",
+      "condition": {
+        "nameEndsWith": ["티 라떼"]
+      },
+      "targetCategory": "차",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055500000,
+      "usageCount": 0,
+      "priority": 2
+    },
+    {
+      "id": "pattern-tea-ending",
+      "type": "pattern",
+      "condition": {
+        "nameEndsWith": ["티", "우롱차"]
+      },
+      "targetCategory": "차",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055500000,
+      "usageCount": 0,
+      "priority": 2
+    },
+    {
+      "id": "pattern-blended-priority",
+      "type": "pattern",
+      "condition": {
+        "nameContains": [
+          "프라푸치노",
+          "블렌디드",
+          "쉐이크",
+          "프라페",
+          "빽스치노"
+        ]
+      },
+      "targetCategory": "블렌디드",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 19,
+      "priority": 3
+    },
+    {
+      "id": "pattern-smoothie-keywords",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["스무디"]
+      },
+      "targetCategory": "스무디",
+      "confidence": "medium",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 5
+    },
+    {
+      "id": "pattern-juice-keywords",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["주스"]
+      },
+      "targetCategory": "주스",
+      "confidence": "medium",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 3
+    },
+    {
+      "id": "pattern-ade-keywords",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["에이드", "레모네이드", "자몽에이드", "청포도에이드"]
+      },
+      "targetCategory": "에이드",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1722556800000,
+      "usageCount": 0
+    },
+    {
+      "id": "human-direct-1754054297397",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "콜드 브루"
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754054297397,
+      "usageCount": 18
+    },
+    {
+      "id": "human-direct-1754054431905",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "브루드 커피"
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754054431905,
+      "usageCount": 4
+    },
+    {
+      "id": "human-direct-1754054442987",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "에스프레소"
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754054442987,
+      "usageCount": 36
+    },
+    {
+      "id": "human-direct-1754054510314",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "스타벅스 피지오"
+      },
+      "targetCategory": "에이드",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754054510314,
+      "usageCount": 10
+    },
+    {
+      "id": "human-direct-1754054535558",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "티"
+      },
+      "targetCategory": "차",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754054535558,
+      "usageCount": 36
+    },
+    {
+      "id": "human-direct-1754054599689",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "스타벅스 주스(병음료)"
+      },
+      "targetCategory": "주스",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754054599689,
+      "usageCount": 1
+    },
+    {
+      "id": "human-direct-1754054636027",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "커피 · 더치"
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754054636027,
+      "usageCount": 1
+    },
+    {
+      "id": "direct-compose-combo",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "컴포즈 콤보"
+      },
+      "targetCategory": "그 외",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754054800000,
+      "usageCount": 0
+    },
+    {
+      "id": "direct-dessert",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "디저트"
+      },
+      "targetCategory": "그 외",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754054900000,
+      "usageCount": 0
+    },
+    {
+      "id": "direct-non-coffee-latte",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "논커피 라떼"
+      },
+      "targetCategory": "그 외",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055000000,
+      "usageCount": 0
+    },
+    {
+      "id": "direct-md-product",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "MD상품"
+      },
+      "targetCategory": "그 외",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055100000,
+      "usageCount": 0
+    },
+    {
+      "id": "direct-ice-cream-dessert",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "아이스크림/디저트"
+      },
+      "targetCategory": "그 외",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055200000,
+      "usageCount": 0
+    },
+    {
+      "id": "direct-paiks-chino",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "빽스치노"
+      },
+      "targetCategory": "블렌디드",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055300000,
+      "usageCount": 0
+    }
+  ],
+  "stats": {
+    "totalCategorizations": 209,
+    "humanLearnings": 10,
+    "averageConfidence": 2.6794258373205757
+  }
+}

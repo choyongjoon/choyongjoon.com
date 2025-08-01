@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 
 export const list = query({
@@ -269,5 +270,22 @@ export const listWithImageStatus = query({
       hasStorageId: !!product.imageStorageId,
       hasExternalUrl: !!product.externalImageUrl,
     }));
+  },
+});
+
+export const updateCategory = mutation({
+  args: {
+    productId: v.string(),
+    category: v.string(),
+  },
+  handler: async (ctx, { productId, category }) => {
+    const now = Date.now();
+
+    await ctx.db.patch(productId as Id<'products'>, {
+      category,
+      updatedAt: now,
+    });
+
+    return { success: true, productId, category };
   },
 });
