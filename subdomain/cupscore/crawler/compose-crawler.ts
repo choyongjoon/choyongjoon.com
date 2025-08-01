@@ -244,7 +244,7 @@ async function handleCategoryPage(
       externalImageUrl: productData.imageUrl,
       category: 'Drinks' as const,
       externalCategory: categoryName,
-      externalId: `compose_${categoryId}_${productData.id}`,
+      externalId: `compose_${categoryId}_${productData.name}`,
       externalUrl: url,
     }));
 
