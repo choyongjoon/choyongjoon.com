@@ -1,7 +1,69 @@
 import { PlaywrightCrawler, type Request } from 'crawlee';
 import type { Locator, Page } from 'playwright';
 import { logger } from '../../shared/logger';
-import { type Product, waitForLoad, writeProductsToJson } from './crawlerUtils';
+import {
+  type Product,
+  takeDebugScreenshot,
+  waitForLoad,
+  writeProductsToJson,
+} from './crawlerUtils';
+
+// ================================================
+// SITE STRUCTURE CONFIGURATION
+// ================================================
+
+const SITE_CONFIG = {
+  baseUrl: 'https://paikdabang.com',
+  startUrl: 'https://paikdabang.com/menu/menu_new/',
+} as const;
+
+// ================================================
+// CSS SELECTORS
+// ================================================
+
+const SELECTORS = {
+  // Category discovery selectors
+  categoryTabs: 'ul.page_tab a',
+
+  // Product listing selectors
+  menuItems: '.menu_list > ul > li',
+
+  // Product data selectors
+  productData: {
+    name: 'p.menu_tit',
+    description: 'p.txt',
+    image: 'img',
+  },
+} as const;
+
+// ================================================
+// CRAWLER CONFIGURATION
+// ================================================
+
+// Test mode configuration
+const isTestMode = process.env.CRAWLER_TEST_MODE === 'true';
+const maxProductsInTestMode = isTestMode
+  ? Number.parseInt(process.env.CRAWLER_MAX_PRODUCTS || '3', 10)
+  : Number.POSITIVE_INFINITY;
+const maxRequestsInTestMode = isTestMode
+  ? Number.parseInt(process.env.CRAWLER_MAX_REQUESTS || '10', 10)
+  : 30;
+
+const CRAWLER_CONFIG = {
+  maxConcurrency: 2,
+  maxRequestsPerCrawl: isTestMode ? maxRequestsInTestMode : 30,
+  maxRequestRetries: 2,
+  requestHandlerTimeoutSecs: isTestMode ? 30 : 45,
+  launchOptions: {
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'] as string[],
+  },
+  maxItemsPerCategory: isTestMode ? maxProductsInTestMode : 20,
+} as const;
+
+// ================================================
+// DATA EXTRACTION FUNCTIONS
+// ================================================
 
 // Extract category URLs from the main menu page
 async function extractCategoryUrls(
@@ -13,8 +75,8 @@ async function extractCategoryUrls(
     await waitForLoad(page);
 
     // Get all category tab links
-    await page.waitForSelector('ul.page_tab a', { timeout: 10_000 });
-    const categoryTabs = await page.locator('ul.page_tab a').all();
+    await page.waitForSelector(SELECTORS.categoryTabs, { timeout: 10_000 });
+    const categoryTabs = await page.locator(SELECTORS.categoryTabs).all();
 
     logger.info(`🏷️  Found ${categoryTabs.length} category tabs`);
 
@@ -38,7 +100,7 @@ async function extractCategoryUrls(
 
         const fullUrl = href.startsWith('http')
           ? href
-          : `https://paikdabang.com${href}`;
+          : `${SITE_CONFIG.baseUrl}${href}`;
         categories.push({ url: fullUrl, name: categoryName });
         logger.info(`📋 Found category: ${categoryName} -> ${fullUrl}`);
       }
@@ -51,11 +113,11 @@ async function extractCategoryUrls(
   }
 }
 
-// Find menu items using user-specified selector
+// Find menu items using configured selector
 async function findMenuItems(
   page: Page
 ): Promise<{ items: Locator[]; selector: string }> {
-  const selector = '.menu_list > ul > li';
+  const selector = SELECTORS.menuItems;
 
   try {
     await page.waitForSelector(selector, { timeout: 10_000 });
@@ -68,11 +130,11 @@ async function findMenuItems(
   }
 }
 
-// Extract product name using user-specified selector
+// Extract product name using configured selector
 async function extractProductName(menuItem: Locator): Promise<string> {
   try {
     const name = await menuItem
-      .locator('p.menu_tit')
+      .locator(SELECTORS.productData.name)
       .textContent({ timeout: 1000 })
       .then((text: string | null) => text?.trim() || '')
       .catch(() => '');
@@ -85,14 +147,14 @@ async function extractProductName(menuItem: Locator): Promise<string> {
 // Extract product image URL
 function extractProductImage(menuItem: Locator): Promise<string> {
   return menuItem
-    .locator('img')
+    .locator(SELECTORS.productData.image)
     .first()
     .getAttribute('src')
     .then((src: string | null) => {
       if (!src) {
         return '';
       }
-      return src.startsWith('http') ? src : `https://paikdabang.com${src}`;
+      return src.startsWith('http') ? src : `${SITE_CONFIG.baseUrl}${src}`;
     })
     .catch(() => '');
 }
@@ -105,7 +167,7 @@ async function extractProductDescription(
   try {
     // Try to get description without hover first
     let description = await menuItem
-      .locator('p.txt')
+      .locator(SELECTORS.productData.description)
       .textContent({ timeout: 500 })
       .then((text: string | null) => text?.trim() || '')
       .catch(() => '');
@@ -115,7 +177,7 @@ async function extractProductDescription(
       await menuItem.hover({ timeout: 500 });
       await page.waitForTimeout(200);
       description = await menuItem
-        .locator('p.txt')
+        .locator(SELECTORS.productData.description)
         .textContent({ timeout: 500 })
         .then((text: string | null) => text?.trim() || '')
         .catch(() => '');
@@ -188,7 +250,10 @@ async function extractProductsFromPage(
     );
 
     // Process each menu item with reduced limits for performance
-    const maxItemsToProcess = Math.min(menuItems.length, 20);
+    const maxItemsToProcess = Math.min(
+      menuItems.length,
+      CRAWLER_CONFIG.maxItemsPerCategory
+    );
     logger.info(
       `📝 Processing ${maxItemsToProcess} items out of ${menuItems.length} found`
     );
@@ -238,12 +303,18 @@ async function extractProductsFromPage(
   }
 }
 
-// Handle main menu page - discover category URLs
+// ================================================
+// PAGE HANDLERS
+// ================================================
+
 async function handleMainMenuPage(
   page: Page,
   crawlerInstance: PlaywrightCrawler
 ) {
   logger.info('Processing main menu page to discover categories');
+
+  await waitForLoad(page);
+  await takeDebugScreenshot(page, 'paik-main-menu');
 
   const categories = await extractCategoryUrls(page);
 
@@ -252,8 +323,17 @@ async function handleMainMenuPage(
     return;
   }
 
+  // Limit categories in test mode
+  const categoriesToProcess = isTestMode ? categories.slice(0, 1) : categories;
+
+  if (isTestMode) {
+    logger.info(
+      `🧪 Test mode: limiting to ${categoriesToProcess.length} categories`
+    );
+  }
+
   // Enqueue all category pages
-  const categoryRequests = categories.map((category) => ({
+  const categoryRequests = categoriesToProcess.map((category) => ({
     url: category.url,
     userData: {
       categoryName: category.name,
@@ -262,10 +342,11 @@ async function handleMainMenuPage(
   }));
 
   await crawlerInstance.addRequests(categoryRequests);
-  logger.info(`📋 Enqueued ${categories.length} category pages for processing`);
+  logger.info(
+    `📋 Enqueued ${categoriesToProcess.length} category pages for processing`
+  );
 }
 
-// Handle category page - extract products
 async function handleCategoryPage(
   page: Page,
   request: Request,
@@ -284,83 +365,45 @@ async function handleCategoryPage(
   logger.info(`📊 Added ${products.length} products from ${categoryName}`);
 }
 
-async function crawlPaikMenu(): Promise<Product[]> {
-  const crawler = new PlaywrightCrawler({
+// ================================================
+// CRAWLER EXPORT
+// ================================================
+
+export const createPaikCrawler = () =>
+  new PlaywrightCrawler({
     launchContext: {
-      launchOptions: {
-        headless: true,
-        slowMo: 50, // Reduced from 100
-      },
+      launchOptions: CRAWLER_CONFIG.launchOptions,
     },
-    maxRequestsPerCrawl: 10, // 1 main page + up to 4 category pages (excluding menu_new)
-    maxConcurrency: 1, // Process one page at a time to avoid overload
-    requestHandlerTimeoutSecs: 30, // Reduced from 60 to 30 seconds
-    maxRequestRetries: 1, // Reduce retries to speed up failures
-
-    async requestHandler({ page, request, log, crawler: crawlerInstance }) {
-      try {
-        const url = request.loadedUrl || request.url;
-        log.info(`🌐 Processing: ${url}`);
-
-        // Set shorter page timeout
-        page.setDefaultTimeout(15_000); // 15 seconds instead of default 30
-
-        // Route to appropriate handler
-        if (request.userData?.isCategoryPage) {
-          await handleCategoryPage(page, request, crawlerInstance);
-        } else {
-          // Main menu page - discover categories
-          await handleMainMenuPage(page, crawlerInstance);
-        }
-      } catch (error) {
-        log.error(`❌ Error processing ${request.url}: ${error}`);
-        // Continue processing other pages even if one fails
+    async requestHandler({ page, request, crawler: crawlerInstance }) {
+      if (request.userData?.isCategoryPage) {
+        await handleCategoryPage(page, request, crawlerInstance);
+      } else {
+        await handleMainMenuPage(page, crawlerInstance);
       }
     },
-
-    failedRequestHandler({ request, log }) {
-      log.error(`💥 Request failed: ${request.url}`);
-    },
+    maxConcurrency: CRAWLER_CONFIG.maxConcurrency,
+    maxRequestsPerCrawl: CRAWLER_CONFIG.maxRequestsPerCrawl,
+    maxRequestRetries: CRAWLER_CONFIG.maxRequestRetries,
+    requestHandlerTimeoutSecs: CRAWLER_CONFIG.requestHandlerTimeoutSecs,
   });
 
-  logger.info(`🎯 Starting Paik's Coffee crawler`);
-  logger.info('📋 Will discover category URLs from main menu page');
+export const runPaikCrawler = async () => {
+  const crawler = createPaikCrawler();
 
-  // Start with main menu page to discover categories
-  await crawler.run(['https://paikdabang.com/menu/menu_new/']);
-
-  // Extract products from crawler results
-  const dataset = await crawler.getData();
-  return dataset.items as Product[];
-}
-
-async function main() {
   try {
-    logger.info("🚀 Starting Paik's Coffee (빽다방) Menu Crawler");
-    logger.info('='.repeat(50));
-
-    // Run the crawler
-    const products = await crawlPaikMenu();
-
-    await writeProductsToJson(products, 'paik');
+    await crawler.run([SITE_CONFIG.startUrl]);
+    const dataset = await crawler.getData();
+    await writeProductsToJson(dataset.items as Product[], 'paik');
   } catch (error) {
-    logger.error("💥 Fatal error in Paik's Coffee crawler:", error);
-    process.exit(1);
+    logger.error('Paik crawler failed:', error);
+    throw error;
   }
-}
+};
 
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-  logger.info('🛑 Received SIGINT, shutting down...');
-  process.exit(0);
-});
-
-// Run if this file is executed directly
+// Only run if this file is executed directly (not imported)
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
-    logger.error('Unhandled error:', error);
+  runPaikCrawler().catch((error) => {
+    logger.error('Crawler execution failed:', error);
     process.exit(1);
   });
 }
-
-export { crawlPaikMenu };

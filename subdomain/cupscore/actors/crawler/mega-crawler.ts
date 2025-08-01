@@ -8,56 +8,121 @@ import {
   writeProductsToJson,
 } from './crawlerUtils';
 
-// Helper function to extract product data from a product container
+// ================================================
+// SITE STRUCTURE CONFIGURATION
+// ================================================
+
+const SITE_CONFIG = {
+  baseUrl: 'https://www.mega-mgccoffee.com',
+  startUrl: 'https://www.mega-mgccoffee.com/menu/',
+  categoryUrlTemplate: 'https://www.mega-mgccoffee.com/menu/?menu_category1=',
+} as const;
+
+// ================================================
+// CSS SELECTORS
+// ================================================
+
+const SELECTORS = {
+  // Product container selectors (multiple strategies)
+  productContainers: [
+    '.cont_gallery_list .inner_modal_open',
+    '.cont_gallery_list ul li',
+    '.product-item',
+    '.menu-item',
+    '.item-box',
+    'li[data-id]',
+    '.gallery-item',
+  ],
+
+  // Product data selectors
+  productData: {
+    name: '.cont_text_title',
+    nameEn: '.cont_text_info div.text1',
+    description: '.cont_text_info div.text2',
+    image: 'img',
+  },
+
+  // Category discovery selectors
+  categoryCheckboxes: [
+    'input[name="list_checkbox"]',
+    '.category-filter input',
+    '.menu-category input',
+    'input[type="checkbox"][data-category]',
+  ],
+
+  // Pagination selectors
+  pagination: {
+    nextButton: '.board_page_next',
+    loadMoreButton:
+      'button:has-text("더보기"), .load-more, button:has-text("Load More")',
+  },
+} as const;
+
+// ================================================
+// CRAWLER CONFIGURATION
+// ================================================
+
+// Test mode configuration
+const isTestMode = process.env.CRAWLER_TEST_MODE === 'true';
+const maxProductsInTestMode = isTestMode
+  ? Number.parseInt(process.env.CRAWLER_MAX_PRODUCTS || '3', 10)
+  : Number.POSITIVE_INFINITY;
+const maxRequestsInTestMode = isTestMode
+  ? Number.parseInt(process.env.CRAWLER_MAX_REQUESTS || '10', 10)
+  : 10;
+
+const CRAWLER_CONFIG = {
+  maxConcurrency: 1, // Single concurrency for pagination
+  maxRequestsPerCrawl: isTestMode ? maxRequestsInTestMode : 10,
+  maxRequestRetries: 2,
+  requestHandlerTimeoutSecs: isTestMode ? 60 : 300, // 1 minute for test, 5 minutes for pagination
+  maxPages: isTestMode ? 1 : 50, // Single page in test mode
+  launchOptions: {
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  },
+} as const;
+
+// ================================================
+// DATA EXTRACTION FUNCTIONS
+// ================================================
+
 async function extractProductData(
   container: Locator,
   categoryName: string
 ): Promise<Product | null> {
   try {
-    // Extract all product data in parallel using the correct selectors
     const [name, nameEn, description, imageUrl] = await Promise.all([
-      // Korean product name
       container
-        .locator('.cont_text_title')
+        .locator(SELECTORS.productData.name)
         .first()
         .textContent()
         .then((text) => text?.trim() || ''),
-
-      // English product name
       container
-        .locator('.cont_text_info div.text1')
+        .locator(SELECTORS.productData.nameEn)
         .first()
         .textContent()
         .then((text) => text?.trim() || null)
         .catch(() => null),
-
-      // Product description
       container
-        .locator('.cont_text_info div.text2')
+        .locator(SELECTORS.productData.description)
         .first()
         .textContent()
         .then((text) => text?.trim() || null)
         .catch(() => null),
-
-      // Product image
       container
-        .locator('img')
+        .locator(SELECTORS.productData.image)
         .first()
         .getAttribute('src')
         .then((src) => {
-          if (!src) {
-            return '';
-          }
-          return src.startsWith('/')
-            ? `https://www.mega-mgccoffee.com${src}`
-            : src;
+          if (!src) return '';
+          return src.startsWith('/') ? `${SITE_CONFIG.baseUrl}${src}` : src;
         })
         .catch(() => ''),
     ]);
 
-    // Generate a product if we have any name
     if (name && name.length > 0) {
-      const product = {
+      return {
         name,
         nameEn,
         description,
@@ -68,40 +133,21 @@ async function extractProductData(
         externalId: `mega_${name}`,
         externalUrl: '', // Will be filled by caller
       };
-
-      logger.info(`✅ Successfully created product: ${name}`);
-      return product;
     }
-    logger.warn('❌ No valid product name found in container');
   } catch (error) {
     logger.error('Error extracting product data:', error);
   }
   return null;
 }
 
-// Helper function to extract products from the current page
 async function extractPageProducts(page: Page, categoryName = 'Default') {
   const products: Product[] = [];
-
-  // Multiple selector strategies for finding product containers
-  // Based on debugging, we found that the actual product containers have the class 'inner_modal_open'
-  const containerSelectors = [
-    '.cont_gallery_list .inner_modal_open', // This should be the actual product containers
-    '.cont_gallery_list ul li',
-    '.product-item',
-    '.menu-item',
-    '.item-box',
-    'li[data-id]',
-    '.gallery-item',
-  ];
-
   let productContainers: Locator | null = null;
   let usedSelector = '';
 
   // Try each selector until we find products
-  for (const selector of containerSelectors) {
+  for (const selector of SELECTORS.productContainers) {
     const containers = page.locator(selector);
-    // biome-ignore lint/nursery/noAwaitInLoop: Sequential selector checking is intentional
     const count = await containers.count();
     if (count > 0) {
       productContainers = containers;
@@ -117,14 +163,11 @@ async function extractPageProducts(page: Page, categoryName = 'Default') {
   }
 
   const containerCount = await productContainers.count();
+  logger.info(`Processing all ${containerCount} products`);
 
-  // Process all products now that we have working selectors
-  const limitedCount = containerCount; // Process all products
-  logger.info(`Processing all ${limitedCount} products`);
-
-  // Process first few containers for debugging
-  const productPromises = Array.from({ length: limitedCount }, async (_, i) =>
-    extractProductData(productContainers?.nth(i), categoryName)
+  // Process all containers in parallel
+  const productPromises = Array.from({ length: containerCount }, async (_, i) =>
+    extractProductData(productContainers.nth(i), categoryName)
   );
 
   const productResults = await Promise.all(productPromises);
@@ -137,27 +180,16 @@ async function extractPageProducts(page: Page, categoryName = 'Default') {
   }
 
   products.push(...validProducts);
-
   return { products, usedSelector };
 }
 
-// Helper function to discover menu categories
 async function extractMenuCategories(page: Page) {
   await waitForLoad(page);
 
   const categories: Array<{ name: string; value: string; url: string }> = [];
 
-  // Look for category checkboxes or filters
-  const categorySelectors = [
-    'input[name="list_checkbox"]',
-    '.category-filter input',
-    '.menu-category input',
-    'input[type="checkbox"][data-category]',
-  ];
-
-  for (const selector of categorySelectors) {
+  for (const selector of SELECTORS.categoryCheckboxes) {
     const checkboxes = page.locator(selector);
-    // biome-ignore lint/nursery/noAwaitInLoop: Sequential selector checking is intentional
     const count = await checkboxes.count();
 
     if (count > 0) {
@@ -179,7 +211,7 @@ async function extractMenuCategories(page: Page) {
           return {
             name,
             value,
-            url: `https://www.mega-mgccoffee.com/menu/?menu_category1=${value}`,
+            url: `${SITE_CONFIG.categoryUrlTemplate}${value}`,
           };
         }
         return null;
@@ -200,14 +232,17 @@ async function extractMenuCategories(page: Page) {
     categories.push({
       name: 'All Menu',
       value: 'all',
-      url: 'https://www.mega-mgccoffee.com/menu/',
+      url: SITE_CONFIG.startUrl,
     });
   }
 
   return categories;
 }
 
-// Handle main menu page with pagination - discover categories and all products
+// ================================================
+// PAGE HANDLERS
+// ================================================
+
 async function handleMainMenuPage(
   page: Page,
   crawlerInstance: PlaywrightCrawler
@@ -215,7 +250,6 @@ async function handleMainMenuPage(
   logger.info('Processing Mega MGC Coffee main menu page with pagination');
 
   await waitForLoad(page);
-
   await takeDebugScreenshot(page, 'mega-main-menu');
 
   // Try to discover categories
@@ -232,8 +266,6 @@ async function handleMainMenuPage(
   while (true) {
     logger.info(`Processing page ${currentPage}...`);
 
-    // Wait for content to load
-    // biome-ignore lint/nursery/noAwaitInLoop: Pagination requires sequential page processing
     await waitForLoad(page);
 
     // Extract products from the current page
@@ -254,7 +286,7 @@ async function handleMainMenuPage(
     totalProductsExtracted += pageProducts.products.length;
 
     // Check if there's a next page button
-    const nextButton = page.locator('.board_page_next');
+    const nextButton = page.locator(SELECTORS.pagination.nextButton);
     const nextButtonCount = await nextButton.count();
 
     if (nextButtonCount === 0) {
@@ -270,7 +302,7 @@ async function handleMainMenuPage(
           el.classList.contains('disabled') ||
           el.style.display === 'none' ||
           !(el as HTMLElement).offsetParent
-        ); // Check if element is visible
+        );
       })
       .catch(() => true);
 
@@ -285,15 +317,14 @@ async function handleMainMenuPage(
         `Clicking next page button to go to page ${currentPage + 1}...`
       );
       await nextButton.click();
-
-      // Wait for the new page content to load
       await waitForLoad(page);
-
       currentPage++;
 
       // Safety check to prevent infinite loops
-      if (currentPage > 50) {
-        logger.warn('Reached maximum page limit (50), stopping pagination');
+      if (currentPage > CRAWLER_CONFIG.maxPages) {
+        logger.warn(
+          `Reached maximum page limit (${CRAWLER_CONFIG.maxPages}), stopping pagination`
+        );
         break;
       }
     } catch (error) {
@@ -306,11 +337,10 @@ async function handleMainMenuPage(
     `Pagination complete. Total products extracted: ${totalProductsExtracted} across ${currentPage} pages`
   );
 
-  // If we found categories, enqueue them for processing (though pagination might cover all products)
+  // If we found categories, enqueue them for processing
   if (categories.length > 1) {
-    // More than just "All Menu"
     const categoryRequests = categories
-      .filter((cat) => cat.value !== 'all') // Skip "All Menu" as we already processed it
+      .filter((cat) => cat.value !== 'all')
       .map((category) => ({
         url: category.url,
         userData: {
@@ -327,7 +357,6 @@ async function handleMainMenuPage(
   }
 }
 
-// Handle category-specific pages
 async function handleCategoryPage(
   page: Page,
   request: Request,
@@ -348,9 +377,20 @@ async function handleCategoryPage(
       `Found ${categoryProducts.products.length} products in category: ${categoryName}`
     );
 
+    // Limit products in test mode
+    const productsToProcess = isTestMode
+      ? categoryProducts.products.slice(0, maxProductsInTestMode)
+      : categoryProducts.products;
+
+    if (isTestMode) {
+      logger.info(
+        `🧪 Test mode: limiting to ${productsToProcess.length} products`
+      );
+    }
+
     // Save all products from this category
     await Promise.all(
-      categoryProducts.products.map(async (product) => {
+      productsToProcess.map(async (product) => {
         await crawlerInstance.pushData(product);
         logger.info(
           `✅ Extracted: ${product.name} - Category: ${categoryName}`
@@ -358,13 +398,11 @@ async function handleCategoryPage(
       })
     );
 
-    // Check for pagination or "Load More" functionality
-    const loadMoreButton = page.locator(
-      'button:has-text("더보기"), .load-more, button:has-text("Load More")'
-    );
+    // Check for "Load More" functionality (skip in test mode)
+    const loadMoreButton = page.locator(SELECTORS.pagination.loadMoreButton);
     const loadMoreCount = await loadMoreButton.count();
 
-    if (loadMoreCount > 0) {
+    if (loadMoreCount > 0 && !isTestMode) {
       logger.info('Found "Load More" button, attempting to click');
       try {
         await loadMoreButton.first().click();
@@ -392,46 +430,52 @@ async function handleCategoryPage(
   }
 }
 
-const crawler = new PlaywrightCrawler({
-  launchContext: {
-    launchOptions: {
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+// ================================================
+// CRAWLER EXPORT
+// ================================================
+
+export const createMegaCrawler = () =>
+  new PlaywrightCrawler({
+    launchContext: {
+      launchOptions: CRAWLER_CONFIG.launchOptions,
     },
-  },
-  async requestHandler({ page, request, crawler: crawlerInstance }) {
-    const url = request.url;
+    async requestHandler({ page, request, crawler: crawlerInstance }) {
+      const url = request.url;
 
-    // Handle main menu page
-    if (url.includes('/menu/') && !request.userData?.isCategoryPage) {
-      await handleMainMenuPage(page, crawlerInstance);
-      return;
-    }
+      // Handle main menu page
+      if (url.includes('/menu/') && !request.userData?.isCategoryPage) {
+        await handleMainMenuPage(page, crawlerInstance);
+        return;
+      }
 
-    // Handle category pages
-    if (request.userData?.isCategoryPage) {
-      await handleCategoryPage(page, request, crawlerInstance);
-    }
-  },
+      // Handle category pages
+      if (request.userData?.isCategoryPage) {
+        await handleCategoryPage(page, request, crawlerInstance);
+      }
+    },
+    maxConcurrency: CRAWLER_CONFIG.maxConcurrency,
+    maxRequestsPerCrawl: CRAWLER_CONFIG.maxRequestsPerCrawl,
+    maxRequestRetries: CRAWLER_CONFIG.maxRequestRetries,
+    requestHandlerTimeoutSecs: CRAWLER_CONFIG.requestHandlerTimeoutSecs,
+  });
 
-  // Configuration for Mega MGC Coffee crawling
-  maxConcurrency: 1, // Single concurrency for pagination
-  maxRequestsPerCrawl: 10, // Fewer requests since we handle pagination internally
-  maxRequestRetries: 2,
-  requestHandlerTimeoutSecs: 300, // Much longer timeout for pagination (5 minutes)
-});
+export const runMegaCrawler = async () => {
+  const crawler = createMegaCrawler();
 
-(async () => {
   try {
-    // Start with the main menu page
-    await crawler.run(['https://www.mega-mgccoffee.com/menu/']);
-
-    // Export collected data to JSON file
+    await crawler.run([SITE_CONFIG.startUrl]);
     const dataset = await crawler.getData();
-
     await writeProductsToJson(dataset.items as Product[], 'mega');
   } catch (error) {
     logger.error('Mega crawler failed:', error);
-    process.exit(1);
+    throw error;
   }
-})();
+};
+
+// Only run if this file is executed directly (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runMegaCrawler().catch((error) => {
+    logger.error('Crawler execution failed:', error);
+    process.exit(1);
+  });
+}

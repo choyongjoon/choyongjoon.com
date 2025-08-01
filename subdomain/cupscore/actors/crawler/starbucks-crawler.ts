@@ -8,8 +8,79 @@ import {
   writeProductsToJson,
 } from './crawlerUtils';
 
+// ================================================
+// SITE STRUCTURE CONFIGURATION
+// ================================================
+
+const SITE_CONFIG = {
+  baseUrl: 'https://www.starbucks.co.kr',
+  startUrl: 'https://www.starbucks.co.kr/menu/drink_list.do',
+  productUrlTemplate:
+    'https://www.starbucks.co.kr/menu/drink_view.do?product_cd=',
+} as const;
+
+// ================================================
+// CSS SELECTORS
+// ================================================
+
+const SELECTORS = {
+  // Product listing page selectors
+  productLinks: [
+    'a.goDrinkView',
+    'a[href*="drink_view.do"]',
+    'a[href*="product_cd"]',
+    '.product-item a',
+    '.drink-item a',
+    'a[onclick*="goDrinkView"]',
+  ],
+
+  // Product detail page selectors
+  productDetails: {
+    name: '.myAssignZone > h4',
+    nameEn: '.myAssignZone > h4 > span',
+    description: '.myAssignZone p.t1',
+    category: '.cate',
+    image: '.elevatezoom-gallery > img:nth-child(1)',
+  },
+} as const;
+
+// ================================================
+// REGEX PATTERNS
+// ================================================
+
+const PATTERNS = {
+  productCode: /\[(\d+)\]/,
+} as const;
+
+// ================================================
+// CRAWLER CONFIGURATION
+// ================================================
+
+// Test mode configuration
+const isTestMode = process.env.CRAWLER_TEST_MODE === 'true';
+const maxProductsInTestMode = isTestMode
+  ? Number.parseInt(process.env.CRAWLER_MAX_PRODUCTS || '3', 10)
+  : Number.POSITIVE_INFINITY;
+const maxRequestsInTestMode = isTestMode
+  ? Number.parseInt(process.env.CRAWLER_MAX_REQUESTS || '10', 10)
+  : 200;
+
+const CRAWLER_CONFIG = {
+  maxConcurrency: 3,
+  maxRequestsPerCrawl: isTestMode ? maxRequestsInTestMode : 200,
+  maxRequestRetries: 2,
+  requestHandlerTimeoutSecs: isTestMode ? 30 : 45,
+  launchOptions: {
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  },
+} as const;
+
+// ================================================
+// DATA EXTRACTION FUNCTIONS
+// ================================================
+
 async function extractProductData(page: Page): Promise<Product> {
-  // Extract all data using Playwright locators instead of page.evaluate
   const [
     name,
     nameEn,
@@ -19,44 +90,31 @@ async function extractProductData(page: Page): Promise<Product> {
     externalId,
     externalUrl,
   ] = await Promise.all([
-    // Extract Korean name
     page
-      .locator('.myAssignZone > h4')
+      .locator(SELECTORS.productDetails.name)
       .textContent()
       .then((text) => text?.trim() || ''),
-
-    // Extract English name
     page
-      .locator('.myAssignZone > h4 > span')
+      .locator(SELECTORS.productDetails.nameEn)
       .textContent()
       .then((text) => text?.trim() || ''),
-
-    // Extract description (first p.t1 in product details)
     page
-      .locator('.myAssignZone p.t1')
+      .locator(SELECTORS.productDetails.description)
       .first()
       .textContent()
       .then((text) => text?.trim() || ''),
-
-    // Extract category
     page
-      .locator('.cate')
+      .locator(SELECTORS.productDetails.category)
       .textContent()
       .then((text) => text?.trim() || ''),
-
-    // Extract image
     page
-      .locator('.elevatezoom-gallery > img:nth-child(1)')
+      .locator(SELECTORS.productDetails.image)
       .getAttribute('src')
       .then((src) => src || ''),
-
-    // Extract ID from URL
     Promise.resolve(page.url()).then((url) => {
       const urlParams = new URLSearchParams(new URL(url).search);
       return urlParams.get('product_cd') || '';
     }),
-
-    // Get current URL
     Promise.resolve(page.url()),
   ]);
 
@@ -79,10 +137,6 @@ async function extractProductData(page: Page): Promise<Product> {
   };
 }
 
-// Regex pattern for extracting product codes from image URLs (defined at top level for performance)
-const PRODUCT_CD_REGEX = /\[(\d+)\]/;
-
-// Helper function to extract product ID from link data
 function extractProductIdFromLink(
   href: string,
   onclick: string,
@@ -92,7 +146,7 @@ function extractProductIdFromLink(
 
   // Try to extract product ID from href
   if (href?.includes('drink_view.do')) {
-    const match = href.match(PRODUCT_CD_REGEX);
+    const match = href.match(PATTERNS.productCode);
     if (match) {
       extractedIds.push(match[1]);
     }
@@ -100,7 +154,7 @@ function extractProductIdFromLink(
 
   // Try to extract product ID from onclick
   if (onclick?.includes('product_cd')) {
-    const match = onclick.match(PRODUCT_CD_REGEX);
+    const match = onclick.match(PATTERNS.productCode);
     if (match) {
       extractedIds.push(match[1]);
     }
@@ -108,7 +162,7 @@ function extractProductIdFromLink(
 
   // Extract product ID from image src in innerHTML
   if (innerHTML) {
-    const imgMatch = innerHTML.match(PRODUCT_CD_REGEX);
+    const imgMatch = innerHTML.match(PATTERNS.productCode);
     if (imgMatch) {
       extractedIds.push(imgMatch[1]);
     }
@@ -117,79 +171,12 @@ function extractProductIdFromLink(
   return extractedIds;
 }
 
-// Helper function to get debug information about page links
-async function getPageDebugInfo(page: Page) {
-  const goDrinkViewLinks = page.locator('a.goDrinkView');
-  const allLinks = page.locator('a');
-  const goDrinkViewCount = await goDrinkViewLinks.count();
-  const totalLinksCount = await allLinks.count();
-  const bodyText = await page
-    .locator('body')
-    .textContent()
-    .then((text) => text?.substring(0, 500) || '');
-  const pageUrl = page.url();
-  const pageTitle = await page.title();
-
-  // Get first few goDrinkView links for debugging
-  const firstGoDrinkViewLinks: Array<{
-    href: string;
-    onclick: string;
-    text: string;
-    className: string;
-    innerHTML: string;
-  }> = [];
-
-  const linkCount = Math.min(5, goDrinkViewCount);
-  if (linkCount > 0) {
-    const linkPromises = Array.from({ length: linkCount }, async (_, i) => {
-      const link = goDrinkViewLinks.nth(i);
-      const [href, onclick, text, className, innerHTML] = await Promise.all([
-        link.getAttribute('href').then((h) => h || 'NO_HREF'),
-        link.getAttribute('onclick').then((o) => o || 'NO_ONCLICK'),
-        link.textContent().then((t) => t?.trim() || 'NO_TEXT'),
-        link.getAttribute('class').then((c) => c || 'NO_CLASS'),
-        link.innerHTML().then((h) => h?.substring(0, 200) || ''),
-      ]);
-
-      return {
-        href,
-        onclick,
-        text,
-        className,
-        innerHTML,
-      };
-    });
-
-    const linkResults = await Promise.all(linkPromises);
-    firstGoDrinkViewLinks.push(...linkResults);
-  }
-
-  return {
-    goDrinkViewCount,
-    totalLinksCount,
-    bodyText,
-    firstGoDrinkViewLinks,
-    pageUrl,
-    pageTitle,
-  };
-}
-
-// Helper function to find and extract product IDs from page
 async function extractProductIds(page: Page) {
-  const selectors = [
-    'a.goDrinkView',
-    'a[href*="drink_view.do"]',
-    'a[href*="product_cd"]',
-    '.product-item a',
-    '.drink-item a',
-    'a[onclick*="goDrinkView"]',
-  ];
-
   let links: ReturnType<typeof page.locator> | null = null;
   let usedSelector = '';
 
   // Try each selector until we find one that works
-  const selectorPromises = selectors.map(async (selector) => {
+  const selectorPromises = SELECTORS.productLinks.map(async (selector) => {
     const foundLinks = page.locator(selector);
     const count = await foundLinks.count();
     return { selector, foundLinks, count };
@@ -206,8 +193,6 @@ async function extractProductIds(page: Page) {
 
   const ids: string[] = [];
   let linksFound = 0;
-  const sampleHrefs: string[] = [];
-  const sampleOnclicks: string[] = [];
 
   if (links) {
     linksFound = await links.count();
@@ -218,7 +203,7 @@ async function extractProductIds(page: Page) {
       async (_, i) => {
         const link = links?.nth(i);
         if (!link) {
-          return { href: 'NO_HREF', onclick: 'NO_ONCLICK', ids: [] };
+          return { ids: [] };
         }
         const [href, onclick, innerHTML] = await Promise.all([
           link.getAttribute('href').then((h) => h || ''),
@@ -227,23 +212,12 @@ async function extractProductIds(page: Page) {
         ]);
 
         const extractedIds = extractProductIdFromLink(href, onclick, innerHTML);
-
-        return {
-          href: href || 'NO_HREF',
-          onclick: onclick || 'NO_ONCLICK',
-          ids: extractedIds,
-        };
+        return { ids: extractedIds };
       }
     );
 
     const linkResults = await Promise.all(linkProcessPromises);
-
-    // Collect debug info and IDs
     for (const result of linkResults) {
-      if (sampleHrefs.length < 5) {
-        sampleHrefs.push(result.href);
-        sampleOnclicks.push(result.onclick);
-      }
       ids.push(...result.ids);
     }
   }
@@ -252,12 +226,13 @@ async function extractProductIds(page: Page) {
     ids,
     usedSelector,
     linksFound,
-    sampleHrefs,
-    sampleOnclicks,
   };
 }
 
-// Handle main menu page - discover and enqueue product pages
+// ================================================
+// PAGE HANDLERS
+// ================================================
+
 async function handleMainMenuPage(
   page: Page,
   crawlerInstance: PlaywrightCrawler
@@ -265,41 +240,38 @@ async function handleMainMenuPage(
   logger.info('Processing drink list page');
 
   await waitForLoad(page);
-
   await takeDebugScreenshot(page, 'starbucks-main-menu');
 
-  // Get page debug information
-  const pageInfo = await getPageDebugInfo(page);
-
-  logger.info(`Page title: "${pageInfo.pageTitle}"`);
-  logger.info(`Body text sample: "${pageInfo.bodyText.substring(0, 200)}"`);
-  logger.info(`Found ${pageInfo.goDrinkViewCount} goDrinkView links`);
-  logger.info(
-    `Sample innerHTML: ${pageInfo.firstGoDrinkViewLinks[0]?.innerHTML?.substring(0, 200) || 'none'}`
-  );
-
-  // Extract product IDs from the page
   const productIds = await extractProductIds(page);
 
   logger.info(
     `Selector used: ${productIds.usedSelector}, Links found: ${productIds.linksFound}`
   );
-  logger.info(`Extracted IDs: ${productIds.ids.join(', ')}`);
   logger.info(`Found ${productIds.ids.length} products to crawl`);
 
+  // Limit products in test mode
+  const productsToProcess = isTestMode
+    ? productIds.ids.slice(0, maxProductsInTestMode)
+    : productIds.ids;
+
+  if (isTestMode) {
+    logger.info(
+      `🧪 Test mode: limiting to ${productsToProcess.length} products`
+    );
+  }
+
   // Prepare all product URLs
-  const productRequests = productIds.ids.map((productId) => ({
-    url: `https://www.starbucks.co.kr/menu/drink_view.do?product_cd=${productId}`,
+  const productRequests = productsToProcess.map((productId) => ({
+    url: `${SITE_CONFIG.productUrlTemplate}${productId}`,
     userData: { productId, isProductPage: true },
   }));
 
-  // Enqueue all product pages at once
   await crawlerInstance.addRequests(productRequests);
-
-  logger.info(`Enqueued ${productIds.ids.length} product pages for processing`);
+  logger.info(
+    `Enqueued ${productsToProcess.length} product pages for processing`
+  );
 }
 
-// Handle individual product page - extract product data
 async function handleProductPage(
   page: Page,
   request: Request,
@@ -320,7 +292,6 @@ async function handleProductPage(
         category: 'Drinks',
       };
 
-      // Save individual product to shared dataset
       await crawlerInstance.pushData(finalProduct);
 
       logger.info(
@@ -336,44 +307,47 @@ async function handleProductPage(
   }
 }
 
-const crawler = new PlaywrightCrawler({
-  launchContext: {
-    launchOptions: {
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+// ================================================
+// CRAWLER EXPORT
+// ================================================
+
+export const createStarbucksCrawler = () =>
+  new PlaywrightCrawler({
+    launchContext: {
+      launchOptions: CRAWLER_CONFIG.launchOptions,
     },
-  },
-  async requestHandler({ page, request, crawler: crawlerInstance }) {
-    const url = request.url;
+    async requestHandler({ page, request, crawler: crawlerInstance }) {
+      const url = request.url;
 
-    // Route to appropriate handler based on URL and request data
-    if (url.includes('drink_list.do')) {
-      await handleMainMenuPage(page, crawlerInstance);
-    } else if (request.userData?.isProductPage) {
-      await handleProductPage(page, request, crawlerInstance);
-    }
-  },
+      if (url.includes('drink_list.do')) {
+        await handleMainMenuPage(page, crawlerInstance);
+      } else if (request.userData?.isProductPage) {
+        await handleProductPage(page, request, crawlerInstance);
+      }
+    },
+    maxConcurrency: CRAWLER_CONFIG.maxConcurrency,
+    maxRequestsPerCrawl: CRAWLER_CONFIG.maxRequestsPerCrawl,
+    maxRequestRetries: CRAWLER_CONFIG.maxRequestRetries,
+    requestHandlerTimeoutSecs: CRAWLER_CONFIG.requestHandlerTimeoutSecs,
+  });
 
-  // Allow multiple concurrent requests for efficiency
-  maxConcurrency: 3,
-  maxRequestsPerCrawl: 200, // Full crawl - all products
+export const runStarbucksCrawler = async () => {
+  const crawler = createStarbucksCrawler();
 
-  // Handle failures gracefully
-  maxRequestRetries: 2,
-  requestHandlerTimeoutSecs: 45,
-});
-
-(async () => {
   try {
-    // Start with the list page
-    await crawler.run(['https://www.starbucks.co.kr/menu/drink_list.do']);
-
-    // Export collected data to JSON file
+    await crawler.run([SITE_CONFIG.startUrl]);
     const dataset = await crawler.getData();
-
     await writeProductsToJson(dataset.items as Product[], 'starbucks');
   } catch (error) {
-    logger.error('Crawler failed:', error);
-    process.exit(1);
+    logger.error('Starbucks crawler failed:', error);
+    throw error;
   }
-})();
+};
+
+// Only run if this file is executed directly (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runStarbucksCrawler().catch((error) => {
+    logger.error('Crawler execution failed:', error);
+    process.exit(1);
+  });
+}

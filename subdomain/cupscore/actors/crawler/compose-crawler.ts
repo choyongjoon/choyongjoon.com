@@ -8,35 +8,96 @@ import {
   writeProductsToJson,
 } from './crawlerUtils';
 
-// Regex patterns for extracting data
-const CATEGORY_ID_REGEX = /\/menu\/category\/(\d+)/;
-const PAGE_REGEX = /page=(\d+)/;
+// ================================================
+// SITE STRUCTURE CONFIGURATION
+// ================================================
 
-const extractProductData = async (container: Locator) => {
+const SITE_CONFIG = {
+  baseUrl: 'https://composecoffee.com',
+  startUrl: 'https://composecoffee.com/menu',
+  categoryUrlTemplate: 'https://composecoffee.com/menu/category/',
+} as const;
+
+// ================================================
+// CSS SELECTORS
+// ================================================
+
+const SELECTORS = {
+  // Main menu page selectors
+  categoryLinks: '.dropdown-menu a[href*="/menu/category/"]',
+
+  // Category page selectors
+  productContainers: '.itemBox',
+  productData: {
+    id: '> div[id]',
+    name: 'h3.undertitle',
+    image: '.rthumbnailimg',
+  },
+
+  // Pagination selectors
+  pagination: 'a[href*="page="], .pagination a, .page-link',
+} as const;
+
+// ================================================
+// REGEX PATTERNS
+// ================================================
+
+const PATTERNS = {
+  categoryId: /\/menu\/category\/(\d+)/,
+  pageNumber: /page=(\d+)/,
+} as const;
+
+// ================================================
+// CRAWLER CONFIGURATION
+// ================================================
+
+// Test mode configuration
+const isTestMode = process.env.CRAWLER_TEST_MODE === 'true';
+const maxProductsInTestMode = isTestMode
+  ? Number.parseInt(process.env.CRAWLER_MAX_PRODUCTS || '3', 10)
+  : Number.POSITIVE_INFINITY;
+const maxRequestsInTestMode = isTestMode
+  ? Number.parseInt(process.env.CRAWLER_MAX_REQUESTS || '10', 10)
+  : 100;
+
+const CRAWLER_CONFIG = {
+  maxConcurrency: 3,
+  maxRequestsPerCrawl: isTestMode ? maxRequestsInTestMode : 100,
+  maxRequestRetries: 2,
+  requestHandlerTimeoutSecs: isTestMode ? 30 : 60,
+  launchOptions: {
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  },
+} as const;
+
+// ================================================
+// DATA EXTRACTION FUNCTIONS
+// ================================================
+
+async function extractProductData(container: Locator) {
   try {
-    // Extract all data in parallel
     const [productId, name, imageUrl] = await Promise.all([
       container
-        .locator('> div[id]')
+        .locator(SELECTORS.productData.id)
         .getAttribute('id')
         .then((id) => id || ''),
       container
-        .locator('h3.undertitle')
+        .locator(SELECTORS.productData.name)
         .textContent()
         .then((text) => text?.trim() || ''),
       container
-        .locator('.rthumbnailimg')
+        .locator(SELECTORS.productData.image)
         .getAttribute('src')
         .then((src) => {
           let url = src || '';
           if (url.startsWith('/')) {
-            url = `https://composecoffee.com${url}`;
+            url = `${SITE_CONFIG.baseUrl}${url}`;
           }
           return url;
         }),
     ]);
 
-    // Only return if we have a valid name
     if (name && name.length > 0) {
       return {
         name,
@@ -51,9 +112,8 @@ const extractProductData = async (container: Locator) => {
     // Skip products that fail to extract
   }
   return null;
-};
+}
 
-// Helper function to extract products from a page
 async function extractPageProducts(page: Page) {
   const products: Array<{
     name: string;
@@ -65,7 +125,7 @@ async function extractPageProducts(page: Page) {
   }> = [];
 
   // Get all product containers
-  const productContainers = page.locator('.itemBox');
+  const productContainers = page.locator(SELECTORS.productContainers);
   const containerCount = await productContainers.count();
 
   // Process all containers in parallel
@@ -77,21 +137,18 @@ async function extractPageProducts(page: Page) {
   products.push(...productResults.filter((p) => p !== null));
 
   // Check for pagination
-  const paginationElements = page.locator(
-    'a[href*="page="], .pagination a, .page-link'
-  );
+  const paginationElements = page.locator(SELECTORS.pagination);
   const paginationCount = await paginationElements.count();
   let maxPage = 1;
 
   if (paginationCount > 0) {
-    // Process pagination links in parallel
     const hrefPromises = Array.from({ length: paginationCount }, (_, i) =>
       paginationElements.nth(i).getAttribute('href')
     );
     const hrefs = await Promise.all(hrefPromises);
 
     for (const href of hrefs) {
-      const match = href?.match(PAGE_REGEX);
+      const match = href?.match(PATTERNS.pageNumber);
       if (match) {
         const pageNum = Number.parseInt(match[1], 10);
         if (pageNum > maxPage) {
@@ -108,22 +165,17 @@ async function extractPageProducts(page: Page) {
 
   return {
     products,
-    usedSelector: 'itemBox-selectors',
     maxPage,
     currentPage,
     pageUrl: url,
   };
 }
 
-// Helper function to extract category data from main menu page
 async function extractCategoryData(page: Page) {
-  const categoryLinks = page.locator(
-    '.dropdown-menu a[href*="/menu/category/"]'
-  );
+  const categoryLinks = page.locator(SELECTORS.categoryLinks);
   const linkCount = await categoryLinks.count();
   const categories: Array<{ url: string; name: string; id: string }> = [];
 
-  // Process category links in parallel
   if (linkCount > 0) {
     const linkPromises = Array.from({ length: linkCount }, async (_, i) => {
       const link = categoryLinks.nth(i);
@@ -133,12 +185,10 @@ async function extractCategoryData(page: Page) {
       ]);
 
       if (href && text) {
-        const match = href.match(CATEGORY_ID_REGEX);
+        const match = href.match(PATTERNS.categoryId);
         if (match) {
           return {
-            url: href.startsWith('/')
-              ? `https://composecoffee.com${href}`
-              : href,
+            url: href.startsWith('/') ? `${SITE_CONFIG.baseUrl}${href}` : href,
             name: text,
             id: match[1],
           };
@@ -158,7 +208,10 @@ async function extractCategoryData(page: Page) {
   };
 }
 
-// Helper function to handle main menu page processing
+// ================================================
+// PAGE HANDLERS
+// ================================================
+
 async function handleMainMenuPage(
   page: Page,
   crawlerInstance: PlaywrightCrawler
@@ -166,14 +219,11 @@ async function handleMainMenuPage(
   logger.info('Processing main menu page to discover categories');
 
   await waitForLoad(page);
-
   await takeDebugScreenshot(page, 'compose-main-menu');
 
-  // Extract category URLs
   const categoryData = await extractCategoryData(page);
 
   logger.info(`Found ${categoryData.categories.length} categories`);
-  logger.info('Categories:', JSON.stringify(categoryData.categories, null, 2));
 
   // Enqueue all category pages
   const categoryRequests = categoryData.categories.map((category) => ({
@@ -192,7 +242,6 @@ async function handleMainMenuPage(
   );
 }
 
-// Helper function to handle category page processing
 async function handleCategoryPage(
   page: Page,
   request: Request,
@@ -215,15 +264,14 @@ async function handleCategoryPage(
   try {
     await waitForLoad(page);
 
-    // Extract products from current category page
     const pageData = await extractPageProducts(page);
 
     logger.info(
-      `Found ${pageData.products.length} products on page ${currentPage} using selector: ${pageData.usedSelector}`
+      `Found ${pageData.products.length} products on page ${currentPage}`
     );
 
     // Save products from this page
-    const products = pageData.products.map((productData) => ({
+    let products = pageData.products.map((productData) => ({
       name: productData.name,
       nameEn: productData.nameEn,
       description: productData.description,
@@ -235,6 +283,12 @@ async function handleCategoryPage(
       externalUrl: url,
     }));
 
+    // Limit products in test mode
+    if (isTestMode) {
+      products = products.slice(0, maxProductsInTestMode);
+      logger.info(`🧪 Test mode: limiting to ${products.length} products`);
+    }
+
     await Promise.all(
       products.map(async (product) => {
         await crawlerInstance.pushData(product);
@@ -244,8 +298,8 @@ async function handleCategoryPage(
       })
     );
 
-    // Handle pagination - enqueue next pages
-    if (currentPage === 1 && pageData.maxPage > 1) {
+    // Handle pagination - enqueue next pages (skip in test mode)
+    if (currentPage === 1 && pageData.maxPage > 1 && !isTestMode) {
       const paginationRequests: Array<{
         url: string;
         userData: {
@@ -277,47 +331,52 @@ async function handleCategoryPage(
   }
 }
 
-const crawler = new PlaywrightCrawler({
-  launchContext: {
-    launchOptions: {
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+// ================================================
+// CRAWLER EXPORT
+// ================================================
+
+export const createComposeCrawler = () =>
+  new PlaywrightCrawler({
+    launchContext: {
+      launchOptions: CRAWLER_CONFIG.launchOptions,
     },
-  },
-  async requestHandler({ page, request, crawler: crawlerInstance }) {
-    const url = request.url;
+    async requestHandler({ page, request, crawler: crawlerInstance }) {
+      const url = request.url;
 
-    // Handle main menu page - discover categories
-    if (url.includes('/menu') && !url.includes('category')) {
-      await handleMainMenuPage(page, crawlerInstance);
-      return;
-    }
+      // Handle main menu page - discover categories
+      if (url.includes('/menu') && !url.includes('category')) {
+        await handleMainMenuPage(page, crawlerInstance);
+        return;
+      }
 
-    // Handle category pages - extract products and pagination
-    if (request.userData?.isCategoryPage) {
-      await handleCategoryPage(page, request, crawlerInstance);
-    }
-  },
+      // Handle category pages - extract products and pagination
+      if (request.userData?.isCategoryPage) {
+        await handleCategoryPage(page, request, crawlerInstance);
+      }
+    },
+    maxConcurrency: CRAWLER_CONFIG.maxConcurrency,
+    maxRequestsPerCrawl: CRAWLER_CONFIG.maxRequestsPerCrawl,
+    maxRequestRetries: CRAWLER_CONFIG.maxRequestRetries,
+    requestHandlerTimeoutSecs: CRAWLER_CONFIG.requestHandlerTimeoutSecs,
+  });
 
-  // Allow multiple concurrent requests for efficiency
-  maxConcurrency: 3,
-  maxRequestsPerCrawl: 100, // Adjust based on expected categories and pages
+export const runComposeCrawler = async () => {
+  const crawler = createComposeCrawler();
 
-  // Handle failures gracefully
-  maxRequestRetries: 2,
-  requestHandlerTimeoutSecs: 60,
-});
-
-(async () => {
   try {
-    // Start with the main menu page
-    await crawler.run(['https://composecoffee.com/menu']);
-
-    // Export collected data to JSON file
+    await crawler.run([SITE_CONFIG.startUrl]);
     const dataset = await crawler.getData();
     await writeProductsToJson(dataset.items as Product[], 'compose');
   } catch (error) {
-    logger.error('Crawler failed:', error);
-    process.exit(1);
+    logger.error('Compose crawler failed:', error);
+    throw error;
   }
-})();
+};
+
+// Only run if this file is executed directly (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runComposeCrawler().catch((error) => {
+    logger.error('Crawler execution failed:', error);
+    process.exit(1);
+  });
+}
