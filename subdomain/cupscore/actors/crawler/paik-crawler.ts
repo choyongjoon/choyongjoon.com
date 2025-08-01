@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PlaywrightCrawler, type Request } from 'crawlee';
 import type { Locator, Page } from 'playwright';
-import { logger } from '../shared/logger';
+import { logger } from '../../shared/logger';
 
 interface Product {
   name: string;
@@ -367,7 +367,12 @@ async function main() {
     }
 
     // Save to file (matching other crawler formats - just array of products)
-    const outputDir = path.join(process.cwd(), 'crawler', 'crawler-outputs');
+    const outputDir = path.join(
+      process.cwd(),
+      'actors',
+      'crawler',
+      'crawler-outputs'
+    );
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }

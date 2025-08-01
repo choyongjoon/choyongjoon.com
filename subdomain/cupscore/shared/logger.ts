@@ -1,4 +1,7 @@
+import dotenv from 'dotenv';
 import pino from 'pino';
+
+dotenv.config({ path: '.env.local' });
 
 // Create logger with pretty printing in development
 const logger = pino({

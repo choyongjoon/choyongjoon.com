@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PlaywrightCrawler, type Request } from 'crawlee';
 import type { Page } from 'playwright';
-import { logger } from '../shared/logger';
+import { logger } from '../../shared/logger';
 
 interface Product {
   name: string;
@@ -278,6 +278,7 @@ async function handleMainMenuPage(
   // Take a screenshot for debugging
   const screenshotPath = path.join(
     process.cwd(),
+    'actors',
     'crawler',
     'crawler-outputs',
     'debug-screenshot.png'

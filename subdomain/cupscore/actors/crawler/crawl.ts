@@ -3,7 +3,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { logger } from '../shared/logger';
+import { logger } from '../../shared/logger';
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);

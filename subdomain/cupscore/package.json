@@ -7,12 +7,8 @@
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
     "start": "node .output/server/index.mjs",
-    "upload": "tsx uploader/run-uploader.ts",
-    "upload-products": "tsx uploader/upload-products.ts",
-    "sync-once": "tsx uploader/daily-sync.ts --once",
-    "sync-daemon": "tsx uploader/daily-sync.ts --daemon",
-    "test-uploader": "node uploader/test-uploader.cjs",
-    "crawl": "tsx crawler/run-crawler.ts"
+    "crawl": "tsx actors/crawler/crawl.ts",
+    "upload": "tsx actors/uploader/upload.ts"
   },
   "dependencies": {
     "@convex-dev/react-query": "0.0.0-alpha.11",

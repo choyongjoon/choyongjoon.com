@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PlaywrightCrawler, type Request } from 'crawlee';
 import type { Locator, Page } from 'playwright';
-import { logger } from '../shared/logger';
+import { logger } from '../../shared/logger';
 
 // Regex patterns for extracting data
 const CATEGORY_ID_REGEX = /\/menu\/category\/(\d+)/;
@@ -167,6 +167,7 @@ async function handleMainMenuPage(
   // Take a screenshot for debugging
   const screenshotPath = path.join(
     process.cwd(),
+    'actors',
     'crawler',
     'crawler-outputs',
     'compose-debug-screenshot.png'

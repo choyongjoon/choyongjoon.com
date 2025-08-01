@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { logger } from '../shared/logger';
+import { logger } from '../../shared/logger';
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -15,22 +15,18 @@ const AVAILABLE_CAFES = {
   starbucks: {
     name: '스타벅스',
     slug: 'starbucks',
-    filePattern: 'starbucks-products-',
   },
   compose: {
     name: '컴포즈커피',
     slug: 'compose',
-    filePattern: 'compose-products-',
   },
   mega: {
     name: '메가커피',
     slug: 'mega',
-    filePattern: 'mega-products-',
   },
   paik: {
     name: '빽다방',
     slug: 'paik',
-    filePattern: 'paik-products-',
   },
 } as const;
 
@@ -98,12 +94,19 @@ function parseArgs(): { cafeSlugs: CafeSlug[]; options: UploadOptions } {
 }
 
 // Find the latest file for a specific cafe
-function findLatestFile(cafePattern: string): string | null {
-  const outputDir = path.join(process.cwd(), 'crawler', 'crawler-outputs');
+function findLatestFile(cafeSlug: string): string | null {
+  const outputDir = path.join(
+    process.cwd(),
+    'actors',
+    'crawler',
+    'crawler-outputs'
+  );
 
   if (!fs.existsSync(outputDir)) {
     return null;
   }
+
+  const cafePattern = `${cafeSlug}-products-`;
 
   const files = fs
     .readdirSync(outputDir)
@@ -119,18 +122,18 @@ function findLatestFile(cafePattern: string): string | null {
 }
 
 // Upload products for a single cafe
-function uploadCafe(cafeName: CafeSlug, options: UploadOptions): Promise<void> {
+function uploadCafe(cafeSlug: CafeSlug, options: UploadOptions): Promise<void> {
   return new Promise((resolve, reject) => {
-    const cafe = AVAILABLE_CAFES[cafeName];
-    const uploaderPath = path.join(__dirname, 'upload-products.ts');
+    const cafe = AVAILABLE_CAFES[cafeSlug];
+    const uploaderPath = path.join(__dirname, 'uploader.ts');
 
     // Find the appropriate file
     let filePath = options.file;
     if (!filePath) {
-      const foundPath = findLatestFile(cafe.filePattern);
+      const foundPath = findLatestFile(cafe.slug);
       if (!foundPath) {
         logger.error(`No ${cafe.name} products file found in crawler-outputs/`);
-        reject(new Error(`No products file found for ${cafeName}`));
+        reject(new Error(`No products file found for ${cafeSlug}`));
         return;
       }
       filePath = foundPath;
@@ -140,14 +143,7 @@ function uploadCafe(cafeName: CafeSlug, options: UploadOptions): Promise<void> {
     logger.info(`📁 File: ${path.basename(filePath)}`);
 
     // Build command arguments
-    const args = [
-      uploaderPath,
-      'upload',
-      '--cafe-slug',
-      cafe.slug,
-      '--file',
-      filePath,
-    ];
+    const args = [uploaderPath, '--cafe-slug', cafe.slug, '--file', filePath];
 
     if (options.dryRun) {
       args.push('--dry-run');
@@ -172,7 +168,7 @@ function uploadCafe(cafeName: CafeSlug, options: UploadOptions): Promise<void> {
         resolve();
       } else {
         logger.error(`❌ ${cafe.name} upload failed with exit code ${code}`);
-        reject(new Error(`Upload ${cafeName} failed with exit code ${code}`));
+        reject(new Error(`Upload ${cafeSlug} failed with exit code ${code}`));
       }
     });
 

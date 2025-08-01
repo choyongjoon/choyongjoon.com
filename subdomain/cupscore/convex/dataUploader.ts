@@ -63,23 +63,24 @@ async function uploadProductsToDatabase(
 export const uploadProductsFromJson = mutation({
   args: {
     products: v.array(v.any()),
-    cafeName: v.string(),
     cafeSlug: v.string(),
     dryRun: v.optional(v.boolean()),
     downloadImages: v.optional(v.boolean()),
   },
   handler: async (
     ctx,
-    { products, cafeName, cafeSlug, dryRun = false, downloadImages = false }
+    { products, cafeSlug, dryRun = false, downloadImages = false }
   ) => {
     const startTime = Date.now();
 
     // Find or create cafe
-    const cafeId = await ctx.runMutation(api.products.findOrCreateCafe, {
-      name: cafeName,
+    const cafe = await ctx.runQuery(api.cafes.getBySlug, {
       slug: cafeSlug,
-      logoUrl: undefined,
     });
+
+    if (!cafe) {
+      throw new Error(`Cafe not found: ${cafeSlug}`);
+    }
 
     const results: UploadResults = {
       processed: 0,
@@ -104,7 +105,7 @@ export const uploadProductsFromJson = mutation({
     await uploadProductsToDatabase(
       ctx,
       products,
-      cafeId,
+      cafe._id,
       results,
       downloadImages
     );
