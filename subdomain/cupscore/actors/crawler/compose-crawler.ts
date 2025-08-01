@@ -1,8 +1,12 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { PlaywrightCrawler, type Request } from 'crawlee';
 import type { Locator, Page } from 'playwright';
 import { logger } from '../../shared/logger';
+import {
+  type Product,
+  takeDebugScreenshot,
+  waitForLoad,
+  writeProductsToJson,
+} from './crawlerUtils';
 
 // Regex patterns for extracting data
 const CATEGORY_ID_REGEX = /\/menu\/category\/(\d+)/;
@@ -161,19 +165,9 @@ async function handleMainMenuPage(
 ) {
   logger.info('Processing main menu page to discover categories');
 
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(3000);
+  await waitForLoad(page);
 
-  // Take a screenshot for debugging
-  const screenshotPath = path.join(
-    process.cwd(),
-    'actors',
-    'crawler',
-    'crawler-outputs',
-    'compose-debug-screenshot.png'
-  );
-  await page.screenshot({ path: screenshotPath, fullPage: true });
-  logger.info(`Screenshot saved to: ${screenshotPath}`);
+  await takeDebugScreenshot(page, 'compose-main-menu');
 
   // Extract category URLs
   const categoryData = await extractCategoryData(page);
@@ -215,19 +209,11 @@ async function handleCategoryPage(
 
   // Take a screenshot for debugging (only for first category)
   if (categoryId === '207002' && currentPage === 1) {
-    const screenshotPath = path.join(
-      process.cwd(),
-      'crawler',
-      'crawler-outputs',
-      `compose-category-${categoryId}-screenshot.png`
-    );
-    await page.screenshot({ path: screenshotPath, fullPage: true });
-    logger.info(`Category screenshot saved to: ${screenshotPath}`);
+    await takeDebugScreenshot(page, `compose-category-${categoryId}`);
   }
 
   try {
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await waitForLoad(page);
 
     // Extract products from current category page
     const pageData = await extractPageProducts(page);
@@ -329,34 +315,7 @@ const crawler = new PlaywrightCrawler({
 
     // Export collected data to JSON file
     const dataset = await crawler.getData();
-    if (dataset.items.length > 0) {
-      const outputPath = path.join(process.cwd(), 'crawler', 'crawler-outputs');
-      if (!fs.existsSync(outputPath)) {
-        fs.mkdirSync(outputPath, { recursive: true });
-      }
-
-      const filename = `compose-products-${new Date().toISOString().split('T')[0]}.json`;
-      const filepath = path.join(outputPath, filename);
-
-      fs.writeFileSync(filepath, JSON.stringify(dataset.items, null, 2));
-      logger.info(`Saved ${dataset.items.length} products to ${filename}`);
-
-      // Log summary by category
-      logger.info('=== CRAWL SUMMARY ===');
-      logger.info(`Total products extracted: ${dataset.items.length}`);
-
-      const categories = new Map<string, number>();
-      for (const item of dataset.items) {
-        const count = categories.get(item.externalCategory) || 0;
-        categories.set(item.externalCategory, count + 1);
-      }
-
-      for (const [category, count] of categories) {
-        logger.info(`${category}: ${count} products`);
-      }
-    } else {
-      logger.warn('No products were extracted');
-    }
+    await writeProductsToJson(dataset.items as Product[], 'compose');
   } catch (error) {
     logger.error('Crawler failed:', error);
     process.exit(1);

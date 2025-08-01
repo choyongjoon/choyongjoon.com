@@ -1,20 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { PlaywrightCrawler, type Request } from 'crawlee';
 import type { Locator, Page } from 'playwright';
 import { logger } from '../../shared/logger';
-
-interface Product {
-  name: string;
-  nameEn: string | null;
-  description: string | null;
-  price: number | null;
-  externalImageUrl: string;
-  category: string;
-  externalCategory: string;
-  externalId: string;
-  externalUrl: string;
-}
+import { type Product, waitForLoad, writeProductsToJson } from './crawlerUtils';
 
 // Extract category URLs from the main menu page
 async function extractCategoryUrls(
@@ -23,9 +10,7 @@ async function extractCategoryUrls(
   try {
     logger.info('📄 Extracting category URLs from tabs');
 
-    // Wait for page to fully load
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await waitForLoad(page);
 
     // Get all category tab links
     await page.waitForSelector('ul.page_tab a', { timeout: 10_000 });
@@ -185,9 +170,7 @@ async function extractProductsFromPage(
   try {
     logger.info(`📄 Extracting products from category: ${categoryName}`);
 
-    // Wait for page to fully load
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
+    await waitForLoad(page);
 
     // Find menu items using multiple selectors
     const { items: menuItems, selector: usedSelector } =
@@ -359,55 +342,7 @@ async function main() {
     // Run the crawler
     const products = await crawlPaikMenu();
 
-    if (products.length === 0) {
-      logger.warn(
-        '⚠️  No products were extracted. Check the website structure.'
-      );
-      return;
-    }
-
-    // Save to file (matching other crawler formats - just array of products)
-    const outputDir = path.join(
-      process.cwd(),
-      'actors',
-      'crawler',
-      'crawler-outputs'
-    );
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `paik-products-${timestamp}.json`;
-    const filepath = path.join(outputDir, filename);
-
-    fs.writeFileSync(filepath, JSON.stringify(products, null, 2), 'utf-8');
-
-    logger.info(`Saved ${products.length} products to ${filename}`);
-
-    // Log summary
-    logger.info('=== CRAWL SUMMARY ===');
-    logger.info(`Total products extracted: ${products.length}`);
-
-    // Group by category for summary
-    const categoryStats = products.reduce(
-      (acc, product) => {
-        acc[product.category] = (acc[product.category] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-
-    logger.info('📈 Category breakdown:');
-    for (const [category, count] of Object.entries(categoryStats)) {
-      logger.info(`   ${category}: ${count} items`);
-    }
-
-    for (const [i, p] of products.entries()) {
-      logger.info(
-        `${i + 1}. ${p.name} (${p.nameEn || 'N/A'}) - ID: ${p.externalId}`
-      );
-    }
+    await writeProductsToJson(products, 'paik');
   } catch (error) {
     logger.error("💥 Fatal error in Paik's Coffee crawler:", error);
     process.exit(1);

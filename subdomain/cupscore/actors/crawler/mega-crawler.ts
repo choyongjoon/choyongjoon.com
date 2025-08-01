@@ -1,20 +1,12 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { PlaywrightCrawler, type Request } from 'crawlee';
 import type { Locator, Page } from 'playwright';
 import { logger } from '../../shared/logger';
-
-interface Product {
-  name: string;
-  nameEn: string | null;
-  description: string | null;
-  price: string | null;
-  externalImageUrl: string;
-  category: string;
-  externalCategory: string;
-  externalId: string;
-  externalUrl: string;
-}
+import {
+  type Product,
+  takeDebugScreenshot,
+  waitForLoad,
+  writeProductsToJson,
+} from './crawlerUtils';
 
 // Helper function to extract product data from a product container
 async function extractProductData(
@@ -87,31 +79,6 @@ async function extractProductData(
   return null;
 }
 
-// Helper function to wait for AJAX content to load
-async function waitForAjaxContent(page: Page, timeout = 10_000): Promise<void> {
-  try {
-    // Wait for network requests to complete
-    await page.waitForLoadState('networkidle', { timeout });
-
-    // Additional wait for dynamic content
-    await page.waitForTimeout(3000);
-
-    // Try to wait for specific content indicators
-    await page
-      .waitForSelector('.cont_gallery_list, .product-list, .menu-items', {
-        timeout: 5000,
-        state: 'visible',
-      })
-      .catch(() => {
-        logger.warn(
-          'Could not find expected content containers, continuing anyway'
-        );
-      });
-  } catch (_error) {
-    logger.warn('Timeout waiting for AJAX content, proceeding anyway');
-  }
-}
-
 // Helper function to extract products from the current page
 async function extractPageProducts(page: Page, categoryName = 'Default') {
   const products: Product[] = [];
@@ -176,7 +143,7 @@ async function extractPageProducts(page: Page, categoryName = 'Default') {
 
 // Helper function to discover menu categories
 async function extractMenuCategories(page: Page) {
-  await waitForAjaxContent(page);
+  await waitForLoad(page);
 
   const categories: Array<{ name: string; value: string; url: string }> = [];
 
@@ -247,18 +214,9 @@ async function handleMainMenuPage(
 ) {
   logger.info('Processing Mega MGC Coffee main menu page with pagination');
 
-  await waitForAjaxContent(page);
+  await waitForLoad(page);
 
-  // Take a screenshot for debugging
-  const screenshotPath = path.join(
-    process.cwd(),
-    'actors',
-    'crawler',
-    'crawler-outputs',
-    'mega-debug-screenshot.png'
-  );
-  await page.screenshot({ path: screenshotPath, fullPage: true });
-  logger.info(`Screenshot saved to: ${screenshotPath}`);
+  await takeDebugScreenshot(page, 'mega-main-menu');
 
   // Try to discover categories
   const categories = await extractMenuCategories(page);
@@ -276,7 +234,7 @@ async function handleMainMenuPage(
 
     // Wait for content to load
     // biome-ignore lint/nursery/noAwaitInLoop: Pagination requires sequential page processing
-    await waitForAjaxContent(page);
+    await waitForLoad(page);
 
     // Extract products from the current page
     const pageProducts = await extractPageProducts(page, 'All Menu');
@@ -329,8 +287,7 @@ async function handleMainMenuPage(
       await nextButton.click();
 
       // Wait for the new page content to load
-      await page.waitForTimeout(3000); // Wait for AJAX content
-      await waitForAjaxContent(page, 15_000); // Extended timeout for pagination
+      await waitForLoad(page);
 
       currentPage++;
 
@@ -381,7 +338,7 @@ async function handleCategoryPage(
 
   logger.info(`Processing category: ${categoryName} (value: ${categoryValue})`);
 
-  await waitForAjaxContent(page, 15_000); // Longer timeout for category pages
+  await waitForLoad(page);
 
   try {
     // Extract products from this category page
@@ -411,7 +368,7 @@ async function handleCategoryPage(
       logger.info('Found "Load More" button, attempting to click');
       try {
         await loadMoreButton.first().click();
-        await waitForAjaxContent(page, 10_000);
+        await waitForLoad(page);
 
         // Extract additional products after loading more
         const additionalProducts = await extractPageProducts(
@@ -472,51 +429,7 @@ const crawler = new PlaywrightCrawler({
     // Export collected data to JSON file
     const dataset = await crawler.getData();
 
-    if (dataset.items.length > 0) {
-      const outputPath = path.join(
-        process.cwd(),
-        'actors',
-        'crawler',
-        'crawler-outputs'
-      );
-      if (!fs.existsSync(outputPath)) {
-        fs.mkdirSync(outputPath, { recursive: true });
-      }
-
-      const filename = `mega-products-${new Date().toISOString().split('T')[0]}.json`;
-      const filepath = path.join(outputPath, filename);
-
-      fs.writeFileSync(filepath, JSON.stringify(dataset.items, null, 2));
-      logger.info(`Saved ${dataset.items.length} products to ${filename}`);
-
-      // Log summary by category
-      logger.info('=== MEGA CRAWL SUMMARY ===');
-      logger.info(`Total products extracted: ${dataset.items.length}`);
-
-      const categories = new Map<string, number>();
-      for (const item of dataset.items) {
-        const count = categories.get(item.externalCategory) || 0;
-        categories.set(item.externalCategory, count + 1);
-      }
-
-      for (const [category, count] of categories) {
-        logger.info(`${category}: ${count} products`);
-      }
-
-      // Sample products for verification
-      if (dataset.items.length > 0) {
-        logger.info('=== SAMPLE PRODUCTS ===');
-        const sampleCount = Math.min(5, dataset.items.length);
-        for (let i = 0; i < sampleCount; i++) {
-          const product = dataset.items[i];
-          logger.info(
-            `${i + 1}. ${product.name} - ${product.externalCategory} - ID: ${product.externalId}`
-          );
-        }
-      }
-    } else {
-      logger.warn('No products were extracted');
-    }
+    await writeProductsToJson(dataset.items as Product[], 'mega');
   } catch (error) {
     logger.error('Mega crawler failed:', error);
     process.exit(1);

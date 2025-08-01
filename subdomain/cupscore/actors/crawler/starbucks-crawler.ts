@@ -1,20 +1,12 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { PlaywrightCrawler, type Request } from 'crawlee';
 import type { Page } from 'playwright';
 import { logger } from '../../shared/logger';
-
-interface Product {
-  name: string;
-  nameEn: string;
-  description: string;
-  price: string | null;
-  externalImageUrl: string;
-  category: string;
-  externalCategory: string;
-  externalId: string;
-  externalUrl: string;
-}
+import {
+  type Product,
+  takeDebugScreenshot,
+  waitForLoad,
+  writeProductsToJson,
+} from './crawlerUtils';
 
 async function extractProductData(page: Page): Promise<Product> {
   // Extract all data using Playwright locators instead of page.evaluate
@@ -272,19 +264,9 @@ async function handleMainMenuPage(
 ) {
   logger.info('Processing drink list page');
 
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(5000);
+  await waitForLoad(page);
 
-  // Take a screenshot for debugging
-  const screenshotPath = path.join(
-    process.cwd(),
-    'actors',
-    'crawler',
-    'crawler-outputs',
-    'debug-screenshot.png'
-  );
-  await page.screenshot({ path: screenshotPath, fullPage: true });
-  logger.info(`Screenshot saved to: ${screenshotPath}`);
+  await takeDebugScreenshot(page, 'starbucks-main-menu');
 
   // Get page debug information
   const pageInfo = await getPageDebugInfo(page);
@@ -388,27 +370,8 @@ const crawler = new PlaywrightCrawler({
 
     // Export collected data to JSON file
     const dataset = await crawler.getData();
-    if (dataset.items.length > 0) {
-      const outputPath = path.join(process.cwd(), 'crawler', 'crawler-outputs');
-      if (!fs.existsSync(outputPath)) {
-        fs.mkdirSync(outputPath, { recursive: true });
-      }
 
-      const filename = `starbucks-products-${new Date().toISOString().split('T')[0]}.json`;
-      const filepath = path.join(outputPath, filename);
-
-      fs.writeFileSync(filepath, JSON.stringify(dataset.items, null, 2));
-      logger.info(`Saved ${dataset.items.length} products to ${filename}`);
-
-      // Log summary
-      logger.info('=== CRAWL SUMMARY ===');
-      logger.info(`Total products extracted: ${dataset.items.length}`);
-      for (const [i, p] of dataset.items.entries()) {
-        logger.info(`${i + 1}. ${p.name} (${p.nameEn}) - ID: ${p.externalId}`);
-      }
-    } else {
-      logger.warn('No products were extracted');
-    }
+    await writeProductsToJson(dataset.items as Product[], 'starbucks');
   } catch (error) {
     logger.error('Crawler failed:', error);
     process.exit(1);
