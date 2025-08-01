@@ -13,18 +13,19 @@ const __dirname = path.dirname(__filename);
 const AVAILABLE_CRAWLERS = {
   starbucks: {
     file: 'starbucks-crawler.ts',
-    name: 'Starbucks Korea',
-    description: 'Crawls Starbucks Korea menu items',
+    name: '스타벅스',
   },
   compose: {
     file: 'compose-crawler.ts',
-    name: 'Compose Coffee',
-    description: 'Crawls Compose Coffee menu items',
+    name: '컴포즈커피',
   },
   mega: {
     file: 'mega-crawler.ts',
-    name: 'Mega MGC Coffee',
-    description: 'Crawls Mega MGC Coffee menu items',
+    name: '메가커피',
+  },
+  paik: {
+    file: 'paik-crawler.ts',
+    name: '빽다방',
   },
 } as const;
 
@@ -42,20 +43,11 @@ Usage:
 
 Available Crawlers:
 ${Object.entries(AVAILABLE_CRAWLERS)
-  .map(
-    ([key, crawler]) =>
-      `  ${key.padEnd(10)} - ${crawler.name} (${crawler.description})`
-  )
+  .map(([key, crawler]) => `  ${key.padEnd(10)} - ${crawler.name}`)
   .join('\n')}
 
 Options:
   --help, -h         Show this help message
-
-Examples:
-  pnpm crawl                           # Run all crawlers
-  pnpm crawl starbucks                 # Run only Starbucks  
-  pnpm crawl compose                   # Run only Compose
-  pnpm crawl starbucks compose         # Run both Starbucks and Compose
 `);
 }
 
@@ -104,7 +96,6 @@ function runCrawler(crawlerName: CrawlerName): Promise<void> {
     const crawlerPath = path.join(__dirname, crawler.file);
 
     logger.info(`🚀 Starting ${crawler.name} crawler...`);
-    logger.info(`📄 Description: ${crawler.description}`);
 
     const child = spawn('tsx', [crawlerPath], {
       stdio: 'inherit',
