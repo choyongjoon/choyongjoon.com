@@ -13,6 +13,7 @@ A comprehensive system for uploading product data from crawler JSON files to Con
 - ✅ **Daily Automation**: Schedule automatic daily uploads
 - ✅ **Comprehensive Logging**: Detailed operation logs and statistics
 - ✅ **Error Handling**: Robust error handling with detailed reporting
+- ✅ **Integrated Image Processing**: Automatically download external images during product upload
 
 ## Quick Start
 
@@ -38,6 +39,9 @@ npm run upload-products -- --dry-run --verbose
 
 # Actual upload
 npm run upload-products -- --verbose
+
+# Upload with automatic image downloading
+npm run upload-products -- --verbose --download-images
 ```
 
 ## Usage
@@ -54,8 +58,11 @@ npm run upload-products -- --file ./crawler-outputs/products.json
 # Dry run to preview changes
 npm run upload-products -- --dry-run --verbose
 
-# Custom cafe
-npm run upload-products -- --cafe-name "Custom Cafe" --cafe-slug "custom"
+# Custom cafe with image downloading
+npm run upload-products -- --cafe-name "Custom Cafe" --cafe-slug "custom" --download-images
+
+# Test with dry run and image downloading
+npm run upload-products -- --dry-run --verbose --download-images
 ```
 
 ### Daily Automation
@@ -94,9 +101,11 @@ products: {
   isDiscontinued: boolean,
   
   // New fields for uploader
-  externalId: string,    // From crawler id_origin
-  addedAt: number,       // Timestamp when first created
-  updatedAt: number,     // Timestamp when last modified
+  externalId: string,           // From crawler id_origin
+  externalImageUrl?: string,    // External image URL from crawler
+  imageStorageId?: string,      // Convex storage ID for uploaded images
+  addedAt: number,             // Timestamp when first created
+  updatedAt: number,           // Timestamp when last modified
 }
 ```
 
@@ -243,6 +252,32 @@ const result = await client.mutation(api.products.upsertProduct, {
 **Returns:**
 ```typescript
 { action: 'created' | 'updated' | 'unchanged', id: string }
+```
+
+#### `getImageUrl`
+Get the public URL for a stored image.
+
+```typescript
+const imageUrl = await client.query(api.products.getImageUrl, {
+  storageId: "storage_id",
+});
+```
+
+#### `getProductWithImage`
+Get a product with its image URL resolved.
+
+```typescript
+const product = await client.query(api.products.getProductWithImage, {
+  productId: "product_id",
+});
+```
+
+**Returns:**
+```typescript
+{
+  // All product fields
+  imageUrl: string | null  // Resolved image URL
+}
 ```
 
 #### `getUploadStats`

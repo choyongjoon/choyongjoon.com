@@ -20,6 +20,7 @@ interface UploadOptions {
   cafeSlug: string;
   dryRun?: boolean;
   verbose?: boolean;
+  downloadImages?: boolean;
 }
 
 interface UploadResult {
@@ -55,6 +56,7 @@ class ProductUploader {
       cafeSlug,
       dryRun = false,
       verbose = false,
+      downloadImages = false,
     } = options;
 
     const filePath = this.resolveFilePath(file);
@@ -71,7 +73,8 @@ class ProductUploader {
         products,
         cafeName,
         cafeSlug,
-        dryRun
+        dryRun,
+        downloadImages
       );
       this.handleUploadResult(result, verbose, dryRun);
       return result;
@@ -133,13 +136,15 @@ class ProductUploader {
     products: unknown[],
     cafeName: string,
     cafeSlug: string,
-    dryRun: boolean
+    dryRun: boolean,
+    downloadImages: boolean
   ): Promise<UploadResult> {
     return await this.client.mutation(api.dataUploader.uploadProductsFromJson, {
       products,
       cafeName,
       cafeSlug,
       dryRun,
+      downloadImages,
     });
   }
 
@@ -267,6 +272,7 @@ async function main() {
       cafeSlug: 'starbucks',
       dryRun: args.includes('--dry-run'),
       verbose: args.includes('--verbose') || args.includes('-v'),
+      downloadImages: args.includes('--download-images'),
     };
 
     // Parse file option
@@ -313,15 +319,16 @@ Upload Options:
   --cafe-slug <slug>   Cafe slug (default: "starbucks")
   --dry-run           Preview changes without uploading
   --verbose, -v       Show detailed output
+  --download-images   Download external images to Convex storage during upload
 
 Stats Options:
   stats <cafe-slug> [days]  Show statistics for cafe (default: starbucks, 7 days)
 
 Examples:
   ts-node upload-products.ts --dry-run --verbose
-  ts-node upload-products.ts --file ./data/products.json
+  ts-node upload-products.ts --file ./data/products.json --download-images
   ts-node upload-products.ts stats starbucks 30
-  ts-node upload-products.ts --cafe-name "Custom Cafe" --cafe-slug "custom"
+  ts-node upload-products.ts --cafe-name "Custom Cafe" --cafe-slug "custom" --download-images
 
 Environment:
   CONVEX_URL          Convex deployment URL

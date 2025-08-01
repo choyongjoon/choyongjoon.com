@@ -15,6 +15,7 @@ export default defineSchema({
     externalCategory: v.optional(v.string()),
     description: v.optional(v.string()),
     externalImageUrl: v.optional(v.string()),
+    imageStorageId: v.optional(v.id('_storage')),
     externalId: v.string(),
     externalUrl: v.string(),
     price: v.optional(v.number()),

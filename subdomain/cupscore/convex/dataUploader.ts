@@ -14,6 +14,7 @@ interface CrawlerProduct {
   externalUrl: string;
   price: number | null;
   category: string;
+  imageStorageId?: Id<'_storage'>;
 }
 interface UploadResults {
   processed: number;
@@ -30,7 +31,8 @@ async function uploadProductsToDatabase(
   ctx: GenericMutationCtx<GenericDataModel>,
   products: CrawlerProduct[],
   cafeId: Id<'cafes'>,
-  results: UploadResults
+  results: UploadResults,
+  downloadImages = false
 ) {
   for (const product of products) {
     try {
@@ -39,6 +41,7 @@ async function uploadProductsToDatabase(
         ...product,
         cafeId,
         price: product.price ?? undefined,
+        downloadImages,
       });
       if (result.action === 'created') {
         results.created++;
@@ -59,8 +62,12 @@ export const uploadProductsFromJson = mutation({
     cafeName: v.string(),
     cafeSlug: v.string(),
     dryRun: v.optional(v.boolean()),
+    downloadImages: v.optional(v.boolean()),
   },
-  handler: async (ctx, { products, cafeName, cafeSlug, dryRun = false }) => {
+  handler: async (
+    ctx,
+    { products, cafeName, cafeSlug, dryRun = false, downloadImages = false }
+  ) => {
     const startTime = Date.now();
 
     // Find or create cafe
@@ -90,7 +97,13 @@ export const uploadProductsFromJson = mutation({
     }
 
     // Upload processed products
-    await uploadProductsToDatabase(ctx, products, cafeId, results);
+    await uploadProductsToDatabase(
+      ctx,
+      products,
+      cafeId,
+      results,
+      downloadImages
+    );
 
     results.processingTime = Date.now() - startTime;
 
@@ -136,5 +149,117 @@ export const getUploadStats = mutation({
       withImages: products.filter((p) => p.externalImageUrl).length,
       withPrices: products.filter((p) => p.price).length,
     };
+  },
+});
+
+export const downloadAndStoreImage = mutation({
+  args: {
+    imageUrl: v.string(),
+    productId: v.id('products'),
+  },
+  handler: async (ctx, { imageUrl, productId }) => {
+    try {
+      // Fetch the image from the external URL
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+
+      // Get the image data
+      const imageBuffer = await response.arrayBuffer();
+      const imageBlob = new Blob([imageBuffer]);
+
+      // Generate upload URL and store the image
+      const uploadUrl = await ctx.storage.generateUploadUrl();
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': response.headers.get('content-type') || 'image/jpeg',
+        },
+        body: imageBlob,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload image: ${uploadResponse.statusText}`);
+      }
+
+      const { storageId } = await uploadResponse.json();
+
+      // Update the product with the storage ID
+      const now = Date.now();
+      await ctx.db.patch(productId, {
+        imageStorageId: storageId,
+        updatedAt: now,
+      });
+
+      return { success: true, storageId };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  },
+});
+
+export const bulkDownloadImages = mutation({
+  args: {
+    cafeSlug: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { cafeSlug, limit = 10 }) => {
+    const cafe = await ctx.db
+      .query('cafes')
+      .withIndex('by_slug', (q) => q.eq('slug', cafeSlug))
+      .first();
+
+    if (!cafe) {
+      throw new Error(`Cafe not found: ${cafeSlug}`);
+    }
+
+    // Find products with external image URLs but no storage ID
+    const products = await ctx.db
+      .query('products')
+      .withIndex('by_cafe', (q) => q.eq('cafeId', cafe._id))
+      .collect();
+
+    const productsToProcess = products
+      .filter((p) => p.externalImageUrl && !p.imageStorageId)
+      .slice(0, limit);
+
+    const results = {
+      processed: 0,
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    for (const product of productsToProcess) {
+      results.processed++;
+
+      try {
+        // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing required for rate limiting external API calls
+        const result = await ctx.runMutation(
+          api.dataUploader.downloadAndStoreImage,
+          {
+            imageUrl: product.externalImageUrl || '',
+            productId: product._id,
+          }
+        );
+
+        if (result.success) {
+          results.success++;
+        } else {
+          results.failed++;
+          results.errors.push(`${product.name}: ${result.error}`);
+        }
+      } catch (error) {
+        results.failed++;
+        results.errors.push(`${product.name}: ${error}`);
+      }
+    }
+
+    return results;
   },
 });

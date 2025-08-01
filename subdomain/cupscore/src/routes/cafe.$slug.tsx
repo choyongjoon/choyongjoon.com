@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import type { Id } from 'convex/_generated/dataModel';
 import { useState } from 'react';
 import { api } from '../../convex/_generated/api';
+import { ProductImage } from '../components/ProductImage';
 
 export const Route = createFileRoute('/cafe/$slug')({
   component: CafePage,
@@ -86,6 +87,14 @@ function CafePage() {
               className="card bg-base-200 shadow-md transition-shadow hover:shadow-lg"
               key={product._id}
             >
+              <figure className="px-4 pt-4">
+                <ProductImage
+                  className="aspect-square w-full rounded-lg object-cover"
+                  externalImageUrl={product.externalImageUrl}
+                  imageStorageId={product.imageStorageId}
+                  productName={product.name}
+                />
+              </figure>
               <div className="card-body">
                 <h3 className="card-title">{product.name}</h3>
                 <p className="mb-2 text-base-content/70 text-sm">

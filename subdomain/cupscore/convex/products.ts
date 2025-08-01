@@ -62,9 +62,11 @@ export const upsertProduct = mutation({
     externalCategory: v.optional(v.string()),
     description: v.optional(v.string()),
     externalImageUrl: v.optional(v.string()),
+    imageStorageId: v.optional(v.id('_storage')),
     externalId: v.string(),
     externalUrl: v.string(),
     price: v.optional(v.number()),
+    downloadImages: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -81,24 +83,56 @@ export const upsertProduct = mutation({
         existing.category !== args.category ||
         existing.price !== args.price ||
         existing.description !== args.description ||
-        existing.externalImageUrl !== args.externalImageUrl;
+        existing.externalImageUrl !== args.externalImageUrl ||
+        existing.imageStorageId !== args.imageStorageId;
 
       if (hasChanges) {
-        await ctx.db.patch(existing._id, {
-          ...args,
-          updatedAt: now,
-        });
+        const updateData = { ...args, updatedAt: now };
+        updateData.downloadImages = undefined; // Remove the flag from stored data
+
+        await ctx.db.patch(existing._id, updateData);
+
+        // Download image if requested and not already stored
+        if (
+          args.downloadImages &&
+          args.externalImageUrl &&
+          !existing.imageStorageId
+        ) {
+          // Schedule image download as a separate action (async)
+          ctx.scheduler.runAfter(
+            0,
+            api.imageDownloader.downloadAndStoreImageAction,
+            {
+              imageUrl: args.externalImageUrl,
+              productId: existing._id,
+            }
+          );
+        }
+
         return { action: 'updated', id: existing._id };
       }
 
       return { action: 'unchanged', id: existing._id };
     }
 
-    const id = await ctx.db.insert('products', {
-      ...args,
-      addedAt: now,
-      updatedAt: now,
-    });
+    // Create new product
+    const insertData = { ...args, addedAt: now, updatedAt: now };
+    insertData.downloadImages = undefined; // Remove the flag from stored data
+
+    const id = await ctx.db.insert('products', insertData);
+
+    // Download image if requested
+    if (args.downloadImages && args.externalImageUrl) {
+      // Schedule image download as a separate action (async)
+      ctx.scheduler.runAfter(
+        0,
+        api.imageDownloader.downloadAndStoreImageAction,
+        {
+          imageUrl: args.externalImageUrl,
+          productId: id,
+        }
+      );
+    }
 
     return { action: 'created', id };
   },
@@ -115,9 +149,11 @@ export const bulkUpsertProducts = mutation({
         externalCategory: v.optional(v.string()),
         description: v.optional(v.string()),
         externalImageUrl: v.optional(v.string()),
+        imageStorageId: v.optional(v.id('_storage')),
         externalId: v.string(),
         externalUrl: v.string(),
         price: v.optional(v.number()),
+        downloadImages: v.optional(v.boolean()),
       })
     ),
   },
@@ -149,5 +185,89 @@ export const bulkUpsertProducts = mutation({
     }
 
     return results;
+  },
+});
+
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const uploadImage = mutation({
+  args: {
+    productId: v.id('products'),
+    storageId: v.id('_storage'),
+  },
+  handler: async (ctx, { productId, storageId }) => {
+    const now = Date.now();
+
+    await ctx.db.patch(productId, {
+      imageStorageId: storageId,
+      updatedAt: now,
+    });
+
+    return { success: true, storageId };
+  },
+});
+
+export const getImageUrl = query({
+  args: { storageId: v.id('_storage') },
+  handler: async (ctx, { storageId }) => {
+    return await ctx.storage.getUrl(storageId);
+  },
+});
+
+export const getProductWithImage = query({
+  args: { productId: v.id('products') },
+  handler: async (ctx, { productId }) => {
+    const product = await ctx.db.get(productId);
+    if (!product) {
+      return null;
+    }
+
+    let imageUrl: string | null = null;
+    if (product.imageStorageId) {
+      imageUrl = await ctx.storage.getUrl(product.imageStorageId);
+    }
+
+    return {
+      ...product,
+      imageUrl,
+    };
+  },
+});
+
+export const updateProductImage = mutation({
+  args: {
+    productId: v.id('products'),
+    storageId: v.id('_storage'),
+  },
+  handler: async (ctx, { productId, storageId }) => {
+    const now = Date.now();
+
+    await ctx.db.patch(productId, {
+      imageStorageId: storageId,
+      updatedAt: now,
+    });
+
+    return { success: true };
+  },
+});
+
+export const listWithImageStatus = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit = 10 }) => {
+    const products = await ctx.db.query('products').order('desc').take(limit);
+
+    return products.map((product) => ({
+      _id: product._id,
+      name: product.name,
+      externalImageUrl: product.externalImageUrl,
+      imageStorageId: product.imageStorageId,
+      hasStorageId: !!product.imageStorageId,
+      hasExternalUrl: !!product.externalImageUrl,
+    }));
   },
 });
