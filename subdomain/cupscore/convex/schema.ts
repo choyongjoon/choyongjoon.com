@@ -5,7 +5,8 @@ export default defineSchema({
   cafes: defineTable({
     name: v.string(),
     slug: v.string(),
-    logoUrl: v.optional(v.string()),
+    imageStorageId: v.optional(v.id('_storage')),
+    rank: v.optional(v.number()),
   }).index('by_slug', ['slug']),
   products: defineTable({
     cafeId: v.id('cafes'),

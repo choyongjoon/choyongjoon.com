@@ -8,6 +8,7 @@ import {
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import type * as React from 'react';
 import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary';
+import { NavBar } from '~/components/NavBar';
 import { NotFound } from '~/components/NotFound';
 import appCss from '~/styles/app.css?url';
 import { seo } from '~/utils/seo';
@@ -72,6 +73,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        <NavBar />
         {children}
         <TanStackRouterDevtools position="bottom-right" />
         <Scripts />

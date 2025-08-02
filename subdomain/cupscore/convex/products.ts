@@ -30,30 +30,6 @@ export const search = query({
   },
 });
 
-export const findOrCreateCafe = mutation({
-  args: {
-    name: v.string(),
-    slug: v.string(),
-    logoUrl: v.optional(v.string()),
-  },
-  handler: async (ctx, { name, slug, logoUrl }) => {
-    const existing = await ctx.db
-      .query('cafes')
-      .withIndex('by_slug', (q) => q.eq('slug', slug))
-      .first();
-
-    if (existing) {
-      return existing._id;
-    }
-
-    return await ctx.db.insert('cafes', {
-      name,
-      slug,
-      logoUrl,
-    });
-  },
-});
-
 export const upsertProduct = mutation({
   args: {
     cafeId: v.id('cafes'),

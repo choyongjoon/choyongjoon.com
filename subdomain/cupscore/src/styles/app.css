@@ -1,3 +1,11 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes:
+    autumn --default,
+    coffee --prefersdark;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
