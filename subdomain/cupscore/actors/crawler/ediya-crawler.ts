@@ -19,8 +19,11 @@ const SITE_CONFIG = {
 } as const;
 
 // ================================================
-// CSS SELECTORS
+// CSS SELECTORS & REGEX PATTERNS
 // ================================================
+
+// Regex patterns for performance optimization
+const GIFT_SUFFIX_REGEX = /\s*선물하기\s*$/;
 
 const SELECTORS = {
   // Category discovery selectors
@@ -34,7 +37,7 @@ const SELECTORS = {
     name: '.menu_tt > a > span',
     nameEn: 'div.detail_con > h2 > span',
     description: '.detail_txt',
-    image: 'img',
+    image: '> a > img',
   },
 } as const;
 
@@ -119,7 +122,14 @@ async function extractProductData(container: Locator): Promise<{
       container
         .locator(SELECTORS.productData.name)
         .textContent()
-        .then((text) => text?.trim() || ''),
+        .then((text) => {
+          if (!text) {
+            return '';
+          }
+          // Clean the name by removing whitespace and gift suffix
+          const cleaned = text.trim().replace(GIFT_SUFFIX_REGEX, '');
+          return cleaned;
+        }),
       container
         .locator(SELECTORS.productData.nameEn)
         .textContent()
@@ -131,22 +141,8 @@ async function extractProductData(container: Locator): Promise<{
         .then((text) => text?.trim() || null)
         .catch(() => null),
       container
-        .locator('img')
-        .evaluateAll((images) => {
-          // Look for images with actual product image paths (not placeholders)
-          for (const img of images) {
-            const src = img.getAttribute('src');
-            if (
-              src &&
-              (src.includes('/files/menu/') ||
-                (src.includes('/') && src.includes('IMG_')))
-            ) {
-              return src;
-            }
-          }
-          // Fallback to first image if no specific product image found
-          return images[0]?.getAttribute('src') || '';
-        })
+        .locator(SELECTORS.productData.image)
+        .getAttribute('src')
         .then((src) => {
           if (!src) {
             return '';
