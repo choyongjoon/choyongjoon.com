@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": 1754090004465,
+  "lastUpdated": 1754111861570,
   "rules": [
     {
       "id": "direct-coffee",
@@ -12,7 +12,7 @@
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 20
+      "usageCount": 47
     },
     {
       "id": "direct-tea",
@@ -94,7 +94,7 @@
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 29
+      "usageCount": 34
     },
     {
       "id": "pattern-tea-keywords",
@@ -120,7 +120,11 @@
       "id": "pattern-strawberry-latte-exclusion",
       "type": "pattern",
       "condition": {
-        "nameContains": ["딸기라떼", "딸기 라떼", "멜론라떼"]
+        "nameContains": [
+          "딸기라떼",
+          "딸기 라떼",
+          "멜론라떼"
+        ]
       },
       "targetCategory": "그 외",
       "confidence": "high",
@@ -133,7 +137,9 @@
       "id": "pattern-refresher-exclusion",
       "type": "pattern",
       "condition": {
-        "nameContains": ["리프레셔"]
+        "nameContains": [
+          "리프레셔"
+        ]
       },
       "targetCategory": "그 외",
       "confidence": "high",
@@ -146,7 +152,9 @@
       "id": "pattern-coffee-ending",
       "type": "pattern",
       "condition": {
-        "nameEndsWith": ["커피"]
+        "nameEndsWith": [
+          "커피"
+        ]
       },
       "targetCategory": "커피",
       "confidence": "high",
@@ -159,7 +167,9 @@
       "id": "pattern-tea-latte-ending",
       "type": "pattern",
       "condition": {
-        "nameEndsWith": ["티 라떼"]
+        "nameEndsWith": [
+          "티 라떼"
+        ]
       },
       "targetCategory": "차",
       "confidence": "high",
@@ -172,7 +182,10 @@
       "id": "pattern-tea-ending",
       "type": "pattern",
       "condition": {
-        "nameEndsWith": ["티", "우롱차"]
+        "nameEndsWith": [
+          "티",
+          "우롱차"
+        ]
       },
       "targetCategory": "차",
       "confidence": "high",
@@ -197,14 +210,16 @@
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 19,
+      "usageCount": 28,
       "priority": 3
     },
     {
       "id": "pattern-smoothie-keywords",
       "type": "pattern",
       "condition": {
-        "nameContains": ["스무디"]
+        "nameContains": [
+          "스무디"
+        ]
       },
       "targetCategory": "스무디",
       "confidence": "medium",
@@ -216,25 +231,32 @@
       "id": "pattern-juice-keywords",
       "type": "pattern",
       "condition": {
-        "nameContains": ["주스"]
+        "nameContains": [
+          "주스"
+        ]
       },
       "targetCategory": "주스",
       "confidence": "medium",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 6
+      "usageCount": 12
     },
     {
       "id": "pattern-ade-keywords",
       "type": "pattern",
       "condition": {
-        "nameContains": ["에이드", "레모네이드", "자몽에이드", "청포도에이드"]
+        "nameContains": [
+          "에이드",
+          "레모네이드",
+          "자몽에이드",
+          "청포도에이드"
+        ]
       },
       "targetCategory": "에이드",
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 10
+      "usageCount": 15
     },
     {
       "id": "human-direct-1754054297397",
@@ -439,11 +461,23 @@
       "createdBy": "human",
       "createdAt": 1754090004465,
       "usageCount": 1
+    },
+    {
+      "id": "human-direct-1754111861569",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "티/티라떼"
+      },
+      "targetCategory": "차",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754111861569,
+      "usageCount": 1
     }
   ],
   "stats": {
-    "totalCategorizations": 275,
-    "humanLearnings": 15,
-    "averageConfidence": 2.585454545454547
+    "totalCategorizations": 332,
+    "humanLearnings": 16,
+    "averageConfidence": 2.60843373493976
   }
 }

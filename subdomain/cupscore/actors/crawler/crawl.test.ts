@@ -36,6 +36,11 @@ const AVAILABLE_CRAWLERS = {
     name: '이디야',
     brand: 'Ediya Coffee',
   },
+  twosome: {
+    file: 'twosome-crawler.ts',
+    name: '투썸플레이스',
+    brand: 'A Twosome Place',
+  },
 } as const;
 
 type CrawlerName = keyof typeof AVAILABLE_CRAWLERS;
@@ -43,7 +48,7 @@ type CrawlerName = keyof typeof AVAILABLE_CRAWLERS;
 // Test configuration
 const TEST_CONFIG = {
   maxProductsPerCrawler: 3,
-  timeoutPerCrawler: 120_000, // 2 minutes per crawler
+  timeoutPerCrawler: 180_000, // 3 minutes per crawler
 } as const;
 
 // Test result interface

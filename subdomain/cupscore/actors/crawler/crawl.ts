@@ -31,6 +31,10 @@ const AVAILABLE_CRAWLERS = {
     file: 'ediya-crawler.ts',
     name: '이디야',
   },
+  twosome: {
+    file: 'twosome-crawler.ts',
+    name: '투썸플레이스',
+  },
 } as const;
 
 type CrawlerName = keyof typeof AVAILABLE_CRAWLERS;

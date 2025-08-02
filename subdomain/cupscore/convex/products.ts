@@ -35,7 +35,7 @@ export const upsertProduct = mutation({
     cafeId: v.id('cafes'),
     name: v.string(),
     nameEn: v.optional(v.string()),
-    category: v.string(),
+    category: v.optional(v.string()),
     externalCategory: v.optional(v.string()),
     description: v.optional(v.string()),
     externalImageUrl: v.optional(v.string()),

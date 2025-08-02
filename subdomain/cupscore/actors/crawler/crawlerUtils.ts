@@ -9,7 +9,7 @@ export interface Product {
   description: string | null;
   price: number | null;
   externalImageUrl: string;
-  category: string;
+  category: string | null;
   externalCategory: string;
   externalId: string;
   externalUrl: string;

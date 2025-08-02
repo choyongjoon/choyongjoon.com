@@ -13,7 +13,7 @@ interface CrawlerProduct {
   externalImageUrl: string;
   externalUrl: string;
   price: number | null;
-  category: string;
+  category: string | null;
   imageStorageId?: Id<'_storage'>;
 }
 interface UploadResults {
@@ -40,6 +40,7 @@ async function uploadProductsToDatabase(
       const result = await ctx.runMutation(api.products.upsertProduct, {
         ...product,
         cafeId,
+        category: product.category ?? undefined,
         nameEn: product.nameEn ?? undefined,
         description: product.description ?? undefined,
         externalCategory: product.externalCategory ?? undefined,
