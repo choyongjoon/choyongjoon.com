@@ -131,12 +131,36 @@ async function extractProductData(container: Locator): Promise<{
         .then((text) => text?.trim() || null)
         .catch(() => null),
       container
-        .locator(SELECTORS.productData.image)
-        .first()
-        .getAttribute('src')
+        .locator('img')
+        .evaluateAll((images) => {
+          // Look for images with actual product image paths (not placeholders)
+          for (const img of images) {
+            const src = img.getAttribute('src');
+            if (
+              src &&
+              (src.includes('/files/menu/') ||
+                (src.includes('/') && src.includes('IMG_')))
+            ) {
+              return src;
+            }
+          }
+          // Fallback to first image if no specific product image found
+          return images[0]?.getAttribute('src') || '';
+        })
         .then((src) => {
-          if (!src) return '';
-          return src.startsWith('http') ? src : `${SITE_CONFIG.baseUrl}${src}`;
+          if (!src) {
+            return '';
+          }
+
+          // Handle relative paths properly
+          if (src.startsWith('/')) {
+            return `${SITE_CONFIG.baseUrl}${src}`;
+          }
+          if (src.startsWith('http')) {
+            return src;
+          }
+          // Relative path without leading slash
+          return `${SITE_CONFIG.baseUrl}/${src}`;
         })
         .catch(() => ''),
     ]);
