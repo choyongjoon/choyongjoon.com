@@ -22,8 +22,12 @@ interface UploadResults {
   updated: number;
   unchanged: number;
   skipped: number;
+  removed: number;
+  reactivated: number;
   errors: string[];
   processingTime: number;
+  removedProducts?: string[];
+  reactivatedProducts?: string[];
 }
 
 // Helper function to upload products to database
@@ -90,6 +94,8 @@ export const uploadProductsFromJson = mutation({
       unchanged: 0,
       errors: [],
       skipped: 0,
+      removed: 0,
+      reactivated: 0,
       processingTime: 0,
     };
 
@@ -111,11 +117,37 @@ export const uploadProductsFromJson = mutation({
       downloadImages
     );
 
+    // After uploading, check for removed products
+    const currentExternalIds = products.map((p) => p.externalId);
+    const removalResults = await ctx.runMutation(
+      api.products.markProductsAsRemoved,
+      {
+        cafeId: cafe._id,
+        currentExternalIds,
+      }
+    );
+
+    // Update results with removal information
+    results.removed = removalResults.removed;
+    results.reactivated = removalResults.reactivated;
+    results.removedProducts = removalResults.removedProducts;
+    results.reactivatedProducts = removalResults.reactivatedProducts;
+
     results.processingTime = Date.now() - startTime;
+
+    let message = `Upload completed in ${results.processingTime}ms. Created: ${results.created}, Updated: ${results.updated}, Unchanged: ${results.unchanged}`;
+
+    if (results.removed > 0) {
+      message += `, Removed: ${results.removed}`;
+    }
+
+    if (results.reactivated > 0) {
+      message += `, Reactivated: ${results.reactivated}`;
+    }
 
     return {
       ...results,
-      message: `Upload completed in ${results.processingTime}ms. Created: ${results.created}, Updated: ${results.updated}, Unchanged: ${results.unchanged}`,
+      message,
     };
   },
 });

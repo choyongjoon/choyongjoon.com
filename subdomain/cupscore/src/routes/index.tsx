@@ -18,7 +18,7 @@ function Home() {
     <div className="min-h-screen bg-base-200">
       {/* Hero Section */}
       <div className="hero bg-gradient-to-b from-primary to-secondary py-16 text-primary-content">
-        <div className="hero-content text-center ">
+        <div className="hero-content text-center">
           <div className="max-w-md">
             <h1 className="mb-5 font-bold font-sunflower text-5xl">잔점</h1>
             <p className="mb-5 text-lg">카페 음료의 모든 것을 한곳에서!</p>

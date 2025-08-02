@@ -44,6 +44,7 @@ export const upsertProduct = mutation({
     externalUrl: v.string(),
     price: v.optional(v.number()),
     downloadImages: v.optional(v.boolean()),
+    isActive: v.optional(v.boolean()), // Default to true if not specified
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -61,10 +62,18 @@ export const upsertProduct = mutation({
         existing.price !== args.price ||
         existing.description !== args.description ||
         existing.externalImageUrl !== args.externalImageUrl ||
-        existing.imageStorageId !== args.imageStorageId;
+        existing.imageStorageId !== args.imageStorageId ||
+        existing.isActive !== (args.isActive ?? true);
 
       if (hasChanges) {
-        const updateData = { ...args, updatedAt: now };
+        const updateData = {
+          ...args,
+          updatedAt: now,
+          isActive: args.isActive ?? true,
+          // Clear removedAt if product is being reactivated
+          removedAt:
+            (args.isActive ?? true) ? undefined : (existing.removedAt ?? now),
+        };
         updateData.downloadImages = undefined; // Remove the flag from stored data
 
         await ctx.db.patch(existing._id, updateData);
@@ -93,7 +102,12 @@ export const upsertProduct = mutation({
     }
 
     // Create new product
-    const insertData = { ...args, addedAt: now, updatedAt: now };
+    const insertData = {
+      ...args,
+      addedAt: now,
+      updatedAt: now,
+      isActive: args.isActive ?? true, // Default to active for new products
+    };
     insertData.downloadImages = undefined; // Remove the flag from stored data
 
     const id = await ctx.db.insert('products', insertData);
@@ -263,5 +277,86 @@ export const updateCategory = mutation({
     });
 
     return { success: true, productId, category };
+  },
+});
+
+export const markProductsAsRemoved = mutation({
+  args: {
+    cafeId: v.id('cafes'),
+    currentExternalIds: v.array(v.string()),
+  },
+  handler: async (ctx, { cafeId, currentExternalIds }) => {
+    const now = Date.now();
+
+    // Get all active products for this cafe
+    const allProducts = await ctx.db
+      .query('products')
+      .withIndex('by_cafe', (q) => q.eq('cafeId', cafeId))
+      .filter((q) => q.eq(q.field('isActive'), true))
+      .collect();
+
+    const removedProducts: string[] = [];
+    const reactivatedProducts: string[] = [];
+
+    // Find products that are no longer in the current crawl
+    for (const product of allProducts) {
+      if (!currentExternalIds.includes(product.externalId)) {
+        // Mark as removed
+        await ctx.db.patch(product._id, {
+          isActive: false,
+          removedAt: now,
+          updatedAt: now,
+        });
+        removedProducts.push(product.name);
+      }
+    }
+
+    // Find products that were previously removed but are now back
+    const previouslyRemovedProducts = await ctx.db
+      .query('products')
+      .withIndex('by_cafe', (q) => q.eq('cafeId', cafeId))
+      .filter((q) => q.eq(q.field('isActive'), false))
+      .collect();
+
+    for (const product of previouslyRemovedProducts) {
+      if (currentExternalIds.includes(product.externalId)) {
+        // Reactivate the product
+        await ctx.db.patch(product._id, {
+          isActive: true,
+          removedAt: undefined,
+          updatedAt: now,
+        });
+        reactivatedProducts.push(product.name);
+      }
+    }
+
+    return {
+      removed: removedProducts.length,
+      removedProducts,
+      reactivated: reactivatedProducts.length,
+      reactivatedProducts,
+    };
+  },
+});
+
+export const getActiveProducts = query({
+  args: { cafeId: v.id('cafes') },
+  handler: async (ctx, { cafeId }) => {
+    return await ctx.db
+      .query('products')
+      .withIndex('by_cafe', (q) => q.eq('cafeId', cafeId))
+      .filter((q) => q.eq(q.field('isActive'), true))
+      .collect();
+  },
+});
+
+export const getRemovedProducts = query({
+  args: { cafeId: v.id('cafes') },
+  handler: async (ctx, { cafeId }) => {
+    return await ctx.db
+      .query('products')
+      .withIndex('by_cafe', (q) => q.eq('cafeId', cafeId))
+      .filter((q) => q.eq(q.field('isActive'), false))
+      .collect();
   },
 });

@@ -28,10 +28,14 @@ interface UploadResult {
   updated: number;
   unchanged: number;
   skipped: number;
+  removed: number;
+  reactivated: number;
   errors: string[];
   processingTime: number;
   message?: string;
   samples?: Array<{ name: string; category: string }>;
+  removedProducts?: string[];
+  reactivatedProducts?: string[];
 }
 
 class ProductUploader {
@@ -161,6 +165,8 @@ class ProductUploader {
     logger.info(`  Updated: ${result.updated}`);
     logger.info(`  Unchanged: ${result.unchanged}`);
     logger.info(`  Skipped: ${result.skipped}`);
+    logger.info(`  Removed: ${result.removed || 0}`);
+    logger.info(`  Reactivated: ${result.reactivated || 0}`);
     logger.info(`  Errors: ${result.errors.length}`);
     logger.info(`  Processing time: ${result.processingTime}ms`);
 
@@ -172,6 +178,65 @@ class ProductUploader {
       logger.info('Sample processed products:');
       for (const [index, product] of result.samples.entries()) {
         logger.info(`  ${index + 1}. ${product.name} (${product.category})`);
+      }
+    }
+
+    // Show removed products summary and details
+    if (result.removed && result.removed > 0) {
+      logger.info('\n❌ Removed Products Summary:');
+      logger.info(`  ${result.removed} product(s) no longer found on website`);
+
+      if (
+        verbose &&
+        result.removedProducts &&
+        result.removedProducts.length > 0
+      ) {
+        logger.info(`\nRemoved products (${result.removedProducts.length}):`);
+        for (const [index, productName] of result.removedProducts.entries()) {
+          logger.info(`  ${index + 1}. ${productName}`);
+        }
+      } else if (!verbose && result.removed > 0) {
+        logger.info('  Use --verbose to see product names');
+      }
+    }
+
+    // Show reactivated products summary and details
+    if (result.reactivated && result.reactivated > 0) {
+      logger.info('\n✅ Reactivated Products Summary:');
+      logger.info(
+        `  ${result.reactivated} previously removed product(s) found again`
+      );
+
+      if (
+        verbose &&
+        result.reactivatedProducts &&
+        result.reactivatedProducts.length > 0
+      ) {
+        logger.info(
+          `\nReactivated products (${result.reactivatedProducts.length}):`
+        );
+        for (const [
+          index,
+          productName,
+        ] of result.reactivatedProducts.entries()) {
+          logger.info(`  ${index + 1}. ${productName}`);
+        }
+      } else if (!verbose && result.reactivated > 0) {
+        logger.info('  Use --verbose to see product names');
+      }
+    }
+
+    // Show overall product lifecycle summary
+    if (
+      (result.removed && result.removed > 0) ||
+      (result.reactivated && result.reactivated > 0)
+    ) {
+      logger.info('\n📊 Product Lifecycle Summary:');
+      if (result.removed && result.removed > 0) {
+        logger.info(`  Products marked as removed: ${result.removed}`);
+      }
+      if (result.reactivated && result.reactivated > 0) {
+        logger.info(`  Products reactivated: ${result.reactivated}`);
       }
     }
   }
