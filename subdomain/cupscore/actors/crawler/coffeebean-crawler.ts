@@ -128,44 +128,52 @@ async function extractProductsFromListing(
 
   try {
     logger.info(`📄 Extracting products from category: ${categoryName}`);
-    
+
     let currentPage = 1;
     let hasMorePages = true;
 
     while (hasMorePages) {
       logger.info(`📄 Processing page ${currentPage} for ${categoryName}`);
-      
+
       await waitForLoad(page);
 
       // Extract products from current page
-      const pageProducts = await extractProductsFromCurrentPage(page, categoryName, currentPage);
+      const pageProducts = await extractProductsFromCurrentPage(
+        page,
+        categoryName,
+        currentPage
+      );
       allProducts.push(...pageProducts);
 
       // Check if there are more pages and we haven't reached test mode limit
       if (!isTestMode && pageProducts.length > 0) {
         const paginationLinks = await page.locator(SELECTORS.pagination).all();
-        
+
         // Look for next page link or numeric page links
         let nextPageFound = false;
         for (const link of paginationLinks) {
           // biome-ignore lint/nursery/noAwaitInLoop: Sequential pagination check needed
           const linkText = await link.textContent();
           const href = await link.getAttribute('href');
-          
-          if (href && (linkText?.includes('다음') || linkText?.includes('next') || 
-              (linkText?.trim() === String(currentPage + 1)))) {
+
+          if (
+            href &&
+            (linkText?.includes('다음') ||
+              linkText?.includes('next') ||
+              linkText?.trim() === String(currentPage + 1))
+          ) {
             logger.info(`🔗 Found next page link: ${linkText?.trim()}`);
-            
+
             // biome-ignore lint/nursery/noAwaitInLoop: Sequential page navigation needed
             await link.click();
             await waitForLoad(page);
-            
+
             currentPage++;
             nextPageFound = true;
             break;
           }
         }
-        
+
         if (!nextPageFound) {
           logger.info(`📄 No more pages found after page ${currentPage}`);
           hasMorePages = false;

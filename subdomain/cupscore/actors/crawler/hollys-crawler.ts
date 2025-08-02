@@ -29,17 +29,17 @@ const NAME_SEPARATOR_REGEX = /\s*\n\s*\t*\s*/;
 const SELECTORS = {
   // Category navigation selectors
   categoryLinks: '.sec_menu > ul > li > a',
-  
+
   // Product listing selectors
   productContainers: '.menu_list li',
   productLinks: '.menu_list li a',
-  
+
   // Product detail page selectors (based on actual HTML structure)
   detailName: 'h3',
   detailImage: 'p.img img',
   detailDescription: '.menuList .description, .menuList p:not(.img)',
   detailPrice: '.price, .menuPrice',
-  
+
   // Listing page selectors (fallback)
   productName: '.menu_name',
   productImage: '.menu_img img',
@@ -90,35 +90,38 @@ const HOLLYS_CATEGORIES = [
 // DATA EXTRACTION FUNCTIONS
 // ================================================
 
-function parseProductName(rawName: string): { name: string; nameEn: string | null } {
+function parseProductName(rawName: string): {
+  name: string;
+  nameEn: string | null;
+} {
   if (!rawName) {
     return { name: '', nameEn: null };
   }
 
   // Clean the raw name by removing extra whitespace
   const cleaned = rawName.trim();
-  
+
   // Split by the pattern: whitespace + newline + tabs/spaces
   const parts = cleaned.split(NAME_SEPARATOR_REGEX);
-  
+
   if (parts.length >= 2) {
     // First part is Korean name, second part is English name
     const koreanName = parts[0].trim();
     const englishName = parts[1].trim();
-    
+
     // Validate that we have meaningful content in both parts
     if (koreanName && englishName) {
-      return { 
-        name: koreanName, 
-        nameEn: englishName 
+      return {
+        name: koreanName,
+        nameEn: englishName,
       };
     }
   }
-  
+
   // If parsing fails, return the cleaned name as Korean name
-  return { 
-    name: cleaned, 
-    nameEn: null 
+  return {
+    name: cleaned,
+    nameEn: null,
   };
 }
 
@@ -143,7 +146,7 @@ async function extractCategoriesFromMenu(
 
       if (text?.trim() && href && href.startsWith('/menu')) {
         const categoryName = text.trim();
-        
+
         // Construct full URL for menu links
         const fullUrl = `${SITE_CONFIG.baseUrl}${href}`;
 
@@ -179,9 +182,7 @@ async function extractProductUrls(
     const productLinks = await page.locator(SELECTORS.productLinks).all();
 
     if (productLinks.length === 0) {
-      logger.warn(
-        `⚠️ No product links found for category: ${categoryName}`
-      );
+      logger.warn(`⚠️ No product links found for category: ${categoryName}`);
       return 0;
     }
 
@@ -212,16 +213,14 @@ async function extractProductUrls(
       : productUrls;
 
     if (isTestMode) {
-      logger.info(
-        `🧪 Test mode: limiting to ${urlsToProcess.length} products`
-      );
+      logger.info(`🧪 Test mode: limiting to ${urlsToProcess.length} products`);
     }
 
     // Prepare product requests for parallel processing
     const productRequests = urlsToProcess.map((productUrl) => ({
       url: productUrl,
-      userData: { 
-        isProductPage: true, 
+      userData: {
+        isProductPage: true,
         categoryName,
         productUrl,
       },
@@ -229,7 +228,7 @@ async function extractProductUrls(
 
     // Add all product requests to the crawler queue for parallel processing
     await crawlerInstance.addRequests(productRequests);
-    
+
     logger.info(
       `🚀 Enqueued ${productRequests.length} products from ${categoryName} for parallel processing`
     );
@@ -256,7 +255,7 @@ async function extractProductDetails(
   try {
     // Wait for essential content first with shorter timeout
     await page.waitForSelector(SELECTORS.detailName, { timeout: 2000 });
-    
+
     // Extract data using specific selectors with very short timeouts
     const [rawName, imageUrl, description, price] = await Promise.all([
       page
@@ -265,7 +264,7 @@ async function extractProductDetails(
         .textContent({ timeout: 1000 })
         .then((text) => text || '')
         .catch(() => ''),
-      
+
       page
         .locator(SELECTORS.detailImage)
         .first()
@@ -283,14 +282,14 @@ async function extractProductDetails(
           return `${SITE_CONFIG.baseUrl}/${src}`;
         })
         .catch(() => ''),
-      
+
       page
         .locator(SELECTORS.detailDescription)
         .first()
         .textContent({ timeout: 1000 })
         .then((text) => text?.trim() || null)
         .catch(() => null),
-      
+
       page
         .locator(SELECTORS.detailPrice)
         .first()
@@ -301,15 +300,17 @@ async function extractProductDetails(
 
     // Parse the name to separate Korean and English parts
     const { name, nameEn } = parseProductName(rawName);
-    
+
     if (name) {
       return { name, nameEn, imageUrl, description, price };
     }
-    
+
     logger.debug(`⚠️ No product name found on ${productUrl}`);
     return null;
   } catch (error) {
-    logger.debug(`⚠️ Failed to extract product details from ${productUrl}: ${error}`);
+    logger.debug(
+      `⚠️ Failed to extract product details from ${productUrl}: ${error}`
+    );
     return null;
   }
 }
@@ -321,7 +322,7 @@ async function handleProductPage(
 ) {
   const { categoryName, productUrl } = request.userData;
   const startTime = Date.now();
-  
+
   logger.info(`🔗 Processing product: ${productUrl}`);
 
   try {
@@ -331,14 +332,16 @@ async function handleProductPage(
     const extractStart = Date.now();
     const productData = await extractProductDetails(page, productUrl);
     const extractEnd = Date.now();
-    
+
     if (productData) {
       // Create and push product to dataset
       const product = createBasicProduct(productData, categoryName, productUrl);
       await crawlerInstance.pushData(product);
-      
+
       const totalTime = Date.now() - startTime;
-      logger.info(`✅ Extracted: ${productData.name}${productData.nameEn ? ` | ${productData.nameEn}` : ''}${productData.price ? ` (${productData.price})` : ''} [${totalTime}ms, extraction: ${extractEnd - extractStart}ms]`);
+      logger.info(
+        `✅ Extracted: ${productData.name}${productData.nameEn ? ` | ${productData.nameEn}` : ''}${productData.price ? ` (${productData.price})` : ''} [${totalTime}ms, extraction: ${extractEnd - extractStart}ms]`
+      );
     } else {
       logger.warn(`⚠️ Failed to extract data from: ${productUrl}`);
     }
@@ -346,7 +349,6 @@ async function handleProductPage(
     logger.error(`❌ Failed to process product ${productUrl}: ${productError}`);
   }
 }
-
 
 function createBasicProduct(
   productInfo: {
@@ -398,10 +400,12 @@ async function handleMainMenuPage(
 
   // Try to extract categories from navigation
   const categories = await extractCategoriesFromMenu(page);
-  
+
   if (categories.length > 0) {
     // Process discovered categories
-    const categoriesToProcess = isTestMode ? categories.slice(0, 1) : categories;
+    const categoriesToProcess = isTestMode
+      ? categories.slice(0, 1)
+      : categories;
 
     if (isTestMode) {
       logger.info(
@@ -418,24 +422,37 @@ async function handleMainMenuPage(
 
         // biome-ignore lint/nursery/noAwaitInLoop: Sequential category processing needed
         logger.info(`🌐 Navigating to: ${category.url}`);
-        await page.goto(category.url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+        await page.goto(category.url, {
+          waitUntil: 'domcontentloaded',
+          timeout: 20_000,
+        });
         await waitForLoad(page);
         logger.info(`✅ Successfully loaded category page: ${category.name}`);
 
         logger.info(`🔍 Starting product URL extraction for: ${category.name}`);
-        const productCount = await extractProductUrls(page, category.name, crawlerInstance);
-        logger.info(`🚀 Enqueued ${productCount} products from ${category.name} for parallel processing`);
-        
+        const productCount = await extractProductUrls(
+          page,
+          category.name,
+          crawlerInstance
+        );
+        logger.info(
+          `🚀 Enqueued ${productCount} products from ${category.name} for parallel processing`
+        );
+
         logger.info(
           `✅ Completed category ${i + 1}/${categoriesToProcess.length}: ${category.name}`
         );
-        
+
         // Add delay between categories to prevent overwhelming the server
         if (i < categoriesToProcess.length - 1) {
-          logger.info(`⏳ Waiting 3 seconds before processing next category (${categoriesToProcess[i + 1].name})...`);
+          logger.info(
+            `⏳ Waiting 3 seconds before processing next category (${categoriesToProcess[i + 1].name})...`
+          );
           // biome-ignore lint/nursery/noAwaitInLoop: Intentional delay between categories
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          logger.info(`🔄 Starting next category: ${categoriesToProcess[i + 1].name}`);
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          logger.info(
+            `🔄 Starting next category: ${categoriesToProcess[i + 1].name}`
+          );
         } else {
           logger.info('🎉 All categories completed!');
         }
@@ -449,17 +466,27 @@ async function handleMainMenuPage(
     }
   } else {
     // Fallback: Use predefined categories and try different approaches
-    logger.info('🔖 No categories found from navigation, using predefined categories');
-    
-    const categoriesToProcess = isTestMode ? HOLLYS_CATEGORIES.slice(0, 1) : HOLLYS_CATEGORIES;
-    
+    logger.info(
+      '🔖 No categories found from navigation, using predefined categories'
+    );
+
+    const categoriesToProcess = isTestMode
+      ? HOLLYS_CATEGORIES.slice(0, 1)
+      : HOLLYS_CATEGORIES;
+
     for (const categoryName of categoriesToProcess) {
       try {
         logger.info(`🔖 Processing predefined category: ${categoryName}`);
-        
+
         // Try to extract product URLs for this category
-        const productCount = await extractProductUrls(page, categoryName, crawlerInstance);
-        logger.info(`🚀 Enqueued ${productCount} products from ${categoryName}`);
+        const productCount = await extractProductUrls(
+          page,
+          categoryName,
+          crawlerInstance
+        );
+        logger.info(
+          `🚀 Enqueued ${productCount} products from ${categoryName}`
+        );
       } catch (categoryError) {
         logger.error(
           `❌ Failed to process predefined category ${categoryName}: ${categoryError}`
@@ -468,7 +495,6 @@ async function handleMainMenuPage(
     }
   }
 }
-
 
 // ================================================
 // CRAWLER EXPORT
@@ -481,12 +507,15 @@ export const createHollysCrawler = () =>
     },
     async requestHandler({ page, request, crawler: crawlerInstance }) {
       const url = request.url;
-      
+
       // Route requests based on URL pattern and userData
       if (url.includes('menuList.do') && !request.userData?.isProductPage) {
         // This is a category page
         await handleMainMenuPage(page, crawlerInstance);
-      } else if (url.includes('menuView.do') || request.userData?.isProductPage) {
+      } else if (
+        url.includes('menuView.do') ||
+        request.userData?.isProductPage
+      ) {
         // This is a product detail page
         await handleProductPage(page, request, crawlerInstance);
       } else {
