@@ -24,9 +24,11 @@ export default defineSchema({
     addedAt: v.number(),
     updatedAt: v.number(),
     removedAt: v.optional(v.number()), // When product was marked as removed
+    shortId: v.string(), // Short URL-friendly ID
   })
     .index('by_cafe', ['cafeId'])
     .index('by_category', ['category'])
     .index('by_external_id', ['externalId'])
-    .index('by_cafe_active', ['cafeId', 'isActive']),
+    .index('by_cafe_active', ['cafeId', 'isActive'])
+    .index('by_short_id', ['shortId']),
 });

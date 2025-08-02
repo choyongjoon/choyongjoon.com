@@ -1,6 +1,6 @@
 import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ConvexImage } from '~/components/ConvexImage';
 import { api } from '../../convex/_generated/api';
@@ -80,20 +80,24 @@ function SearchPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const searchParams = new URLSearchParams();
+    const newSearchParams = new URLSearchParams();
     if (formState.searchTerm.trim()) {
-      searchParams.set('q', formState.searchTerm.trim());
+      newSearchParams.set('q', formState.searchTerm.trim());
     }
     if (formState.cafeId) {
-      searchParams.set('cafe', formState.cafeId);
+      newSearchParams.set('cafe', formState.cafeId);
     }
     if (formState.category) {
-      searchParams.set('category', formState.category);
+      newSearchParams.set('category', formState.category);
     }
 
     navigate({
       to: '/search',
-      search: Object.fromEntries(searchParams),
+      search: {
+        searchTerm: newSearchParams.get('q') || '',
+        cafeId: newSearchParams.get('cafe') || '',
+        category: newSearchParams.get('category') || '',
+      },
     });
 
     setShowSuggestions(false);
@@ -104,18 +108,22 @@ function SearchPage() {
     setFormState((prev) => ({ ...prev, searchTerm: suggestion.name }));
     setShowSuggestions(false);
 
-    const searchParams = new URLSearchParams();
-    searchParams.set('q', suggestion.name);
+    const newSearchParams = new URLSearchParams();
+    newSearchParams.set('q', suggestion.name);
     if (formState.cafeId) {
-      searchParams.set('cafe', formState.cafeId);
+      newSearchParams.set('cafe', formState.cafeId);
     }
     if (formState.category) {
-      searchParams.set('category', formState.category);
+      newSearchParams.set('category', formState.category);
     }
 
     navigate({
       to: '/search',
-      search: Object.fromEntries(searchParams),
+      search: {
+        searchTerm: suggestion.name,
+        cafeId: formState.cafeId,
+        category: formState.category,
+      },
     });
   };
 
@@ -126,7 +134,14 @@ function SearchPage() {
       cafeId: '',
       category: '',
     });
-    navigate({ to: '/search' });
+    navigate({
+      to: '/search',
+      search: {
+        searchTerm: '',
+        cafeId: '',
+        category: '',
+      },
+    });
   };
 
   // Handle cafe change - reset category when cafe changes
@@ -153,11 +168,12 @@ function SearchPage() {
             <div className="grid gap-4 md:grid-cols-3">
               {/* Cafe Selection */}
               <div className="form-control">
-                <label className="label">
+                <label className="label" htmlFor="cafe-select">
                   <span className="label-text font-medium">카페 선택</span>
                 </label>
                 <select
                   className="select select-bordered w-full"
+                  id="cafe-select"
                   onChange={(e) => handleCafeChange(e.target.value)}
                   value={formState.cafeId}
                 >
@@ -172,11 +188,12 @@ function SearchPage() {
 
               {/* Category Selection */}
               <div className="form-control">
-                <label className="label">
+                <label className="label" htmlFor="category-select">
                   <span className="label-text font-medium">카테고리</span>
                 </label>
                 <select
                   className="select select-bordered w-full"
+                  id="category-select"
                   onChange={(e) =>
                     setFormState((prev) => ({
                       ...prev,
@@ -196,11 +213,12 @@ function SearchPage() {
 
               {/* Search Term Input with Autocomplete */}
               <div className="form-control relative">
-                <label className="label">
+                <label className="label" htmlFor="search-input">
                   <span className="label-text font-medium">검색어</span>
                 </label>
                 <input
                   className="input input-bordered w-full"
+                  id="search-input"
                   onBlur={() =>
                     setTimeout(() => setShowSuggestions(false), 200)
                   }
@@ -223,8 +241,8 @@ function SearchPage() {
                   suggestions.length > 0 && (
                     <div className="absolute top-full z-10 mt-1 w-full">
                       <ul className="menu max-h-60 overflow-y-auto rounded-box bg-base-100 shadow-lg">
-                        {suggestions.map((suggestion, index) => (
-                          <li key={index}>
+                        {suggestions.map((suggestion) => (
+                          <li key={suggestion.name}>
                             <button
                               className="flex justify-between"
                               onClick={() => handleSuggestionClick(suggestion)}
@@ -311,9 +329,11 @@ function SearchPage() {
         {searchResults && searchResults.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {searchResults.map((product) => (
-              <div
+              <Link
                 className="card bg-base-100 shadow-md transition-shadow hover:shadow-lg"
                 key={product._id}
+                params={{ shortId: product.shortId || product._id }}
+                to="/product/$shortId"
               >
                 <figure className="aspect-square">
                   <ConvexImage
@@ -344,7 +364,7 @@ function SearchPage() {
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         ) : (

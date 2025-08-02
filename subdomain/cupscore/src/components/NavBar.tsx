@@ -44,7 +44,11 @@ export function NavBar() {
         </Link>
       </div>
       <div className="navbar-end">
-        <Link className="btn btn-ghost btn-circle" to="/search">
+        <Link
+          className="btn btn-ghost btn-circle"
+          search={{ searchTerm: '', cafeId: '', category: '' }}
+          to="/search"
+        >
           <svg
             aria-label="Search"
             className="h-5 w-5"

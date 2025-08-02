@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProductShortIdRouteImport } from './routes/product.$shortId'
 import { Route as CafeSlugRouteImport } from './routes/cafe.$slug'
 
 const SearchRoute = SearchRouteImport.update({
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductShortIdRoute = ProductShortIdRouteImport.update({
+  id: '/product/$shortId',
+  path: '/product/$shortId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CafeSlugRoute = CafeSlugRouteImport.update({
   id: '/cafe/$slug',
   path: '/cafe/$slug',
@@ -33,30 +39,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/cafe/$slug': typeof CafeSlugRoute
+  '/product/$shortId': typeof ProductShortIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/cafe/$slug': typeof CafeSlugRoute
+  '/product/$shortId': typeof ProductShortIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/cafe/$slug': typeof CafeSlugRoute
+  '/product/$shortId': typeof ProductShortIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/search' | '/cafe/$slug'
+  fullPaths: '/' | '/search' | '/cafe/$slug' | '/product/$shortId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/search' | '/cafe/$slug'
-  id: '__root__' | '/' | '/search' | '/cafe/$slug'
+  to: '/' | '/search' | '/cafe/$slug' | '/product/$shortId'
+  id: '__root__' | '/' | '/search' | '/cafe/$slug' | '/product/$shortId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SearchRoute: typeof SearchRoute
   CafeSlugRoute: typeof CafeSlugRoute
+  ProductShortIdRoute: typeof ProductShortIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/product/$shortId': {
+      id: '/product/$shortId'
+      path: '/product/$shortId'
+      fullPath: '/product/$shortId'
+      preLoaderRoute: typeof ProductShortIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cafe/$slug': {
       id: '/cafe/$slug'
       path: '/cafe/$slug'
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SearchRoute: SearchRoute,
   CafeSlugRoute: CafeSlugRoute,
+  ProductShortIdRoute: ProductShortIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,6 +1,6 @@
 import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import type { Id } from 'convex/_generated/dataModel';
 import { useState } from 'react';
 import { api } from '../../convex/_generated/api';
@@ -30,9 +30,9 @@ function CafePage() {
   );
 
   const availableCategories = Array.from(
-    new Set(products?.map((p) => p.category) || [])
+    new Set(products?.map((p) => p.category).filter(Boolean) || [])
   );
-  const categories = getOrderedCategories(availableCategories);
+  const categories = getOrderedCategories(availableCategories as string[]);
   const filteredProducts =
     selectedCategory === 'all'
       ? products
@@ -91,9 +91,11 @@ function CafePage() {
         {/* Products Grid */}
         <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
           {filteredProducts?.map((product) => (
-            <div
+            <Link
               className="card bg-base-100 shadow-md transition-shadow hover:shadow-lg"
               key={product._id}
+              params={{ shortId: product.shortId }}
+              to="/product/$shortId"
             >
               <figure className="">
                 <ConvexImage
@@ -119,7 +121,7 @@ function CafePage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 

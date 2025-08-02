@@ -24,6 +24,7 @@
     "convex": "^1.25.4",
     "crawlee": "^3.14.0",
     "daisyui": "^5.0.48",
+    "nanoid": "^5.1.5",
     "node-cron": "^3.0.3",
     "pino": "^9.7.0",
     "playwright": "^1.54.1",

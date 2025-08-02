@@ -33,10 +33,10 @@ export const search = query({
       return [];
     }
 
-    const query = ctx.db.query('products');
+    const productsQuery = ctx.db.query('products');
 
     // Filter by active products only
-    let products = await query.collect();
+    let products = await productsQuery.collect();
     products = products.filter((p) => p.isActive);
 
     // Filter by cafe if specified
@@ -52,7 +52,7 @@ export const search = query({
     }
 
     // Filter by search term if specified
-    if (searchTerm && searchTerm.trim()) {
+    if (searchTerm?.trim()) {
       const term = searchTerm.toLowerCase();
       products = products.filter((p) => p.name.toLowerCase().includes(term));
     }
@@ -78,9 +78,9 @@ export const search = query({
 export const getCategories = query({
   args: { cafeId: v.optional(v.id('cafes')) },
   handler: async (ctx, { cafeId }) => {
-    const query = ctx.db.query('products');
+    const productsQuery = ctx.db.query('products');
 
-    let products = await query.collect();
+    let products = await productsQuery.collect();
 
     // Filter by active products only
     products = products.filter((p) => p.isActive);
@@ -92,9 +92,11 @@ export const getCategories = query({
 
     // Extract unique categories
     const categories = new Set<string>();
-    products.forEach((p) => {
-      if (p.category) categories.add(p.category);
-    });
+    for (const p of products) {
+      if (p.category) {
+        categories.add(p.category);
+      }
+    }
 
     const availableCategories = Array.from(categories);
 
@@ -121,7 +123,9 @@ export const getProductSuggestions = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, { searchTerm, limit = 10 }) => {
-    if (!searchTerm.trim()) return [];
+    if (!searchTerm.trim()) {
+      return [];
+    }
 
     const products = await ctx.db.query('products').collect();
     const term = searchTerm.toLowerCase();
@@ -162,7 +166,7 @@ export const upsertProduct = mutation({
     downloadImages: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()), // Default to true if not specified
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ action: string; id: string }> => {
     const now = Date.now();
 
     const existing = await ctx.db
@@ -217,12 +221,19 @@ export const upsertProduct = mutation({
       return { action: 'unchanged', id: existing._id };
     }
 
+    // Generate short ID for new product
+    const shortId: string = await ctx.runMutation(
+      api.shortId.generateShortId,
+      {}
+    );
+
     // Create new product
     const insertData = {
       ...args,
       addedAt: now,
       updatedAt: now,
       isActive: args.isActive ?? true, // Default to active for new products
+      shortId,
     };
     insertData.downloadImages = undefined; // Remove the flag from stored data
 
@@ -346,6 +357,41 @@ export const getProductWithImage = query({
   },
 });
 
+export const getByShortId = query({
+  args: { shortId: v.string() },
+  handler: async (ctx, { shortId }) => {
+    return await ctx.db
+      .query('products')
+      .withIndex('by_short_id', (q) => q.eq('shortId', shortId))
+      .first();
+  },
+});
+
+export const getProductWithImageByShortId = query({
+  args: { shortId: v.string() },
+  handler: async (ctx, { shortId }) => {
+    // First try to find by shortId
+    const product = await ctx.db
+      .query('products')
+      .withIndex('by_short_id', (q) => q.eq('shortId', shortId))
+      .first();
+
+    if (!product) {
+      return null;
+    }
+
+    let imageUrl: string | null = null;
+    if (product.imageStorageId) {
+      imageUrl = await ctx.storage.getUrl(product.imageStorageId);
+    }
+
+    return {
+      ...product,
+      imageUrl,
+    };
+  },
+});
+
 export const updateProductImage = mutation({
   args: {
     productId: v.id('products'),
@@ -418,6 +464,7 @@ export const markProductsAsRemoved = mutation({
     for (const product of allProducts) {
       if (!currentExternalIds.includes(product.externalId)) {
         // Mark as removed
+        // biome-ignore lint/nursery/noAwaitInLoop: Sequential product status updates required
         await ctx.db.patch(product._id, {
           isActive: false,
           removedAt: now,
@@ -437,6 +484,7 @@ export const markProductsAsRemoved = mutation({
     for (const product of previouslyRemovedProducts) {
       if (currentExternalIds.includes(product.externalId)) {
         // Reactivate the product
+        // biome-ignore lint/nursery/noAwaitInLoop: Sequential product reactivation required
         await ctx.db.patch(product._id, {
           isActive: true,
           removedAt: undefined,
@@ -502,6 +550,7 @@ export const activateAllProducts = mutation({
         // Check if product needs activation
         if (product.isActive === false || product.isActive === undefined) {
           // Activate the product
+          // biome-ignore lint/nursery/noAwaitInLoop: Sequential product activation required
           await ctx.db.patch(product._id, {
             isActive: true,
             updatedAt: now,

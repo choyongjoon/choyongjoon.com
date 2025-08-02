@@ -19,6 +19,13 @@ export const getBySlug = query({
   },
 });
 
+export const getById = query({
+  args: { cafeId: v.id('cafes') },
+  handler: async (ctx, { cafeId }) => {
+    return await ctx.db.get(cafeId);
+  },
+});
+
 export const getImageUrl = query({
   args: { storageId: v.id('_storage') },
   handler: async (ctx, { storageId }) => {
