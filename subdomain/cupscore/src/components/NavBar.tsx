@@ -37,7 +37,7 @@ export function NavBar() {
         </div> */}
       </div>
       <div className="navbar-center">
-        <a className="btn btn-ghost text-xl" href="/">
+        <a className="btn btn-ghost font-sunflower text-xl" href="/">
           잔점
         </a>
       </div>
