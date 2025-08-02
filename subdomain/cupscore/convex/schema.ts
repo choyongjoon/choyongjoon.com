@@ -20,7 +20,7 @@ export default defineSchema({
     externalId: v.string(),
     externalUrl: v.string(),
     price: v.optional(v.number()),
-    isActive: v.boolean(), // Track if product is currently available on cafe website
+    isActive: v.optional(v.boolean()), // Track if product is currently available on cafe website
     addedAt: v.number(),
     updatedAt: v.number(),
     removedAt: v.optional(v.number()), // When product was marked as removed

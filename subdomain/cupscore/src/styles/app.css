@@ -46,3 +46,12 @@
   --font-sunflower: "Sunflower", sans-serif;
   --font-sans: "Noto Sans KR", sans-serif;
 }
+
+@layer utilities {
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}

@@ -21,12 +21,128 @@ export const getByCafe = query({
 });
 
 export const search = query({
-  args: { searchTerm: v.string() },
-  handler: async (ctx, { searchTerm }) => {
-    const products = await ctx.db.query('products').collect();
-    return products.filter((product) =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  args: {
+    searchTerm: v.optional(v.string()),
+    cafeId: v.optional(v.id('cafes')),
+    category: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { searchTerm, cafeId, category, limit = 50 }) => {
+    // Return empty array if no search criteria provided
+    if (!(searchTerm?.trim() || cafeId || category)) {
+      return [];
+    }
+
+    const query = ctx.db.query('products');
+
+    // Filter by active products only
+    let products = await query.collect();
+    products = products.filter((p) => p.isActive);
+
+    // Filter by cafe if specified
+    if (cafeId) {
+      products = products.filter((p) => p.cafeId === cafeId);
+    }
+
+    // Filter by category if specified
+    if (category) {
+      products = products.filter(
+        (p) => p.category?.toLowerCase() === category.toLowerCase()
+      );
+    }
+
+    // Filter by search term if specified
+    if (searchTerm && searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      products = products.filter((p) => p.name.toLowerCase().includes(term));
+    }
+
+    // Get cafe information for each product
+    const productWithCafes = await Promise.all(
+      products.map(async (product) => {
+        const cafe = await ctx.db.get(product.cafeId);
+        return {
+          ...product,
+          cafeName: cafe?.name || '',
+        };
+      })
     );
+
+    // Sort by name and limit results
+    return productWithCafes
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, limit);
+  },
+});
+
+export const getCategories = query({
+  args: { cafeId: v.optional(v.id('cafes')) },
+  handler: async (ctx, { cafeId }) => {
+    const query = ctx.db.query('products');
+
+    let products = await query.collect();
+
+    // Filter by active products only
+    products = products.filter((p) => p.isActive);
+
+    // Filter by cafe if specified
+    if (cafeId) {
+      products = products.filter((p) => p.cafeId === cafeId);
+    }
+
+    // Extract unique categories
+    const categories = new Set<string>();
+    products.forEach((p) => {
+      if (p.category) categories.add(p.category);
+    });
+
+    const availableCategories = Array.from(categories);
+
+    // Sort categories using predefined order
+    const categoryOrder = [
+      '커피',
+      '차',
+      '블렌디드',
+      '스무디',
+      '주스',
+      '에이드',
+      '그 외',
+    ];
+
+    return categoryOrder.filter((category) =>
+      availableCategories.includes(category)
+    );
+  },
+});
+
+export const getProductSuggestions = query({
+  args: {
+    searchTerm: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { searchTerm, limit = 10 }) => {
+    if (!searchTerm.trim()) return [];
+
+    const products = await ctx.db.query('products').collect();
+    const term = searchTerm.toLowerCase();
+
+    // Filter active products and search in name/nameEn
+    const matches = products
+      .filter((p) => p.isActive)
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(term) ||
+          p.nameEn?.toLowerCase().includes(term)
+      )
+      .map((p) => ({
+        id: p._id,
+        name: p.name,
+        nameEn: p.nameEn,
+        category: p.category,
+      }))
+      .slice(0, limit);
+
+    return matches;
   },
 });
 
@@ -358,5 +474,52 @@ export const getRemovedProducts = query({
       .withIndex('by_cafe', (q) => q.eq('cafeId', cafeId))
       .filter((q) => q.eq(q.field('isActive'), false))
       .collect();
+  },
+});
+
+export const activateAllProducts = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const startTime = Date.now();
+
+    // Get all products
+    const allProducts = await ctx.db.query('products').collect();
+
+    const results = {
+      processed: 0,
+      activated: 0,
+      alreadyActive: 0,
+      errors: [] as string[],
+      processingTime: 0,
+    };
+
+    const now = Date.now();
+
+    for (const product of allProducts) {
+      results.processed++;
+
+      try {
+        // Check if product needs activation
+        if (product.isActive === false || product.isActive === undefined) {
+          // Activate the product
+          await ctx.db.patch(product._id, {
+            isActive: true,
+            updatedAt: now,
+            // Clear removedAt if it was set
+            removedAt: undefined,
+          });
+          results.activated++;
+        } else {
+          results.alreadyActive++;
+        }
+      } catch (error) {
+        results.errors.push(
+          `Failed to activate product ${product.name}: ${error}`
+        );
+      }
+    }
+
+    results.processingTime = Date.now() - startTime;
+    return results;
   },
 });
