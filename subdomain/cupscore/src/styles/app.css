@@ -1,9 +1,15 @@
 @import "tailwindcss";
-
 @plugin "daisyui" {
   themes:
     autumn --default,
     coffee --prefersdark;
+}
+@plugin 'daisyui/theme' {
+  name: "autumn";
+  default: true;
+  --radius-selector: 0.25rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.25rem;
 }
 
 @tailwind base;
