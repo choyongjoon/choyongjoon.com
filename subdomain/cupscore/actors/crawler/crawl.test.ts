@@ -41,6 +41,11 @@ const AVAILABLE_CRAWLERS = {
     name: '투썸플레이스',
     brand: 'A Twosome Place',
   },
+  coffeebean: {
+    file: 'coffeebean-crawler.ts',
+    name: '커피빈',
+    brand: 'The Coffee Bean & Tea Leaf',
+  },
 } as const;
 
 type CrawlerName = keyof typeof AVAILABLE_CRAWLERS;

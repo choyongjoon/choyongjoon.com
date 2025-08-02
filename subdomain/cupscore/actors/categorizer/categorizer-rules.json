@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": 1754111861570,
+  "lastUpdated": 1754121146380,
   "rules": [
     {
       "id": "direct-coffee",
@@ -94,7 +94,7 @@
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 34
+      "usageCount": 36
     },
     {
       "id": "pattern-tea-keywords",
@@ -120,11 +120,7 @@
       "id": "pattern-strawberry-latte-exclusion",
       "type": "pattern",
       "condition": {
-        "nameContains": [
-          "딸기라떼",
-          "딸기 라떼",
-          "멜론라떼"
-        ]
+        "nameContains": ["딸기라떼", "딸기 라떼", "멜론라떼"]
       },
       "targetCategory": "그 외",
       "confidence": "high",
@@ -137,9 +133,7 @@
       "id": "pattern-refresher-exclusion",
       "type": "pattern",
       "condition": {
-        "nameContains": [
-          "리프레셔"
-        ]
+        "nameContains": ["리프레셔"]
       },
       "targetCategory": "그 외",
       "confidence": "high",
@@ -152,9 +146,7 @@
       "id": "pattern-coffee-ending",
       "type": "pattern",
       "condition": {
-        "nameEndsWith": [
-          "커피"
-        ]
+        "nameEndsWith": ["커피"]
       },
       "targetCategory": "커피",
       "confidence": "high",
@@ -167,9 +159,7 @@
       "id": "pattern-tea-latte-ending",
       "type": "pattern",
       "condition": {
-        "nameEndsWith": [
-          "티 라떼"
-        ]
+        "nameEndsWith": ["티 라떼"]
       },
       "targetCategory": "차",
       "confidence": "high",
@@ -182,10 +172,7 @@
       "id": "pattern-tea-ending",
       "type": "pattern",
       "condition": {
-        "nameEndsWith": [
-          "티",
-          "우롱차"
-        ]
+        "nameEndsWith": ["티", "우롱차"]
       },
       "targetCategory": "차",
       "confidence": "high",
@@ -210,16 +197,14 @@
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 28,
+      "usageCount": 30,
       "priority": 3
     },
     {
       "id": "pattern-smoothie-keywords",
       "type": "pattern",
       "condition": {
-        "nameContains": [
-          "스무디"
-        ]
+        "nameContains": ["스무디"]
       },
       "targetCategory": "스무디",
       "confidence": "medium",
@@ -231,15 +216,13 @@
       "id": "pattern-juice-keywords",
       "type": "pattern",
       "condition": {
-        "nameContains": [
-          "주스"
-        ]
+        "nameContains": ["주스", "쥬스"]
       },
       "targetCategory": "주스",
       "confidence": "medium",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 12
+      "usageCount": 16
     },
     {
       "id": "pattern-ade-keywords",
@@ -249,14 +232,15 @@
           "에이드",
           "레모네이드",
           "자몽에이드",
-          "청포도에이드"
+          "청포도에이드",
+          "스파클링"
         ]
       },
       "targetCategory": "에이드",
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 15
+      "usageCount": 16
     },
     {
       "id": "human-direct-1754054297397",
@@ -280,7 +264,7 @@
       "confidence": "high",
       "createdBy": "human",
       "createdAt": 1754054431905,
-      "usageCount": 4
+      "usageCount": 10
     },
     {
       "id": "human-direct-1754054442987",
@@ -473,11 +457,35 @@
       "createdBy": "human",
       "createdAt": 1754111861569,
       "usageCount": 1
+    },
+    {
+      "id": "human-direct-1754120991963",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "에스프레소 음료"
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754120991963,
+      "usageCount": 26
+    },
+    {
+      "id": "human-direct-1754121006638",
+      "type": "direct",
+      "condition": {
+        "externalCategory": "커피빈 주스(병음료)"
+      },
+      "targetCategory": "주스",
+      "confidence": "high",
+      "createdBy": "human",
+      "createdAt": 1754121006638,
+      "usageCount": 1
     }
   ],
   "stats": {
-    "totalCategorizations": 332,
-    "humanLearnings": 16,
-    "averageConfidence": 2.60843373493976
+    "totalCategorizations": 393,
+    "humanLearnings": 21,
+    "averageConfidence": 2.633587786259543
   }
 }

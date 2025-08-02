@@ -35,6 +35,10 @@ const AVAILABLE_CRAWLERS = {
     file: 'twosome-crawler.ts',
     name: '투썸플레이스',
   },
+  coffeebean: {
+    file: 'coffeebean-crawler.ts',
+    name: '커피빈',
+  },
 } as const;
 
 type CrawlerName = keyof typeof AVAILABLE_CRAWLERS;

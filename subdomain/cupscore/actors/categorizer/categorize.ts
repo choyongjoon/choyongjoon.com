@@ -45,6 +45,10 @@ const AVAILABLE_CAFES = {
     name: '투썸플레이스',
     slug: 'twosome',
   },
+  coffeebean: {
+    name: '커피빈',
+    slug: 'coffeebean',
+  },
 } as const;
 
 type CafeSlug = keyof typeof AVAILABLE_CAFES;
