@@ -15,7 +15,7 @@ export function CafeCard({
 }) {
   return (
     <Link
-      className="card cursor-pointer bg-base-200 shadow-sm transition-all duration-200 hover:bg-base-300 hover:shadow-lg"
+      className="card cursor-pointer bg-base-100 shadow-sm transition-all duration-200 hover:bg-base-300 hover:shadow-lg"
       params={{ slug: cafe.slug }}
       to="/cafe/$slug"
     >

@@ -5,7 +5,7 @@
 @plugin "daisyui" {
   themes:
     autumn --default,
-    coffee --prefersdark;
+    business --prefersdark;
 }
 @plugin 'daisyui/theme' {
   name: "autumn";
@@ -16,8 +16,8 @@
 }
 
 @plugin 'daisyui/theme' {
-  name: "coffee";
-  default: true;
+  name: "business";
+  prefersdark: true;
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.25rem;

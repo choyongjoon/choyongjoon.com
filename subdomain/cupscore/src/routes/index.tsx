@@ -15,9 +15,9 @@ function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-base-100">
+    <div className="min-h-screen bg-base-200">
       {/* Hero Section */}
-      <div className="hero bg-gradient-to-r from-primary to-secondary py-16 text-primary-content">
+      <div className="hero bg-gradient-to-b from-primary to-secondary py-16 text-primary-content">
         <div className="hero-content text-center ">
           <div className="max-w-md">
             <h1 className="mb-5 font-bold font-sunflower text-5xl">잔점</h1>

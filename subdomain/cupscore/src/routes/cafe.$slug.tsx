@@ -39,13 +39,19 @@ function CafePage() {
       : products?.filter((p) => p.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-base-100">
+    <div className="min-h-screen bg-base-200">
       {/* Cafe Header */}
       <div className="bg-primary py-12 text-primary-content">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-6">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-content/20">
-              <span className="text-4xl">☕</span>
+              <ConvexImage
+                alt={cafe?.name}
+                className="h-full w-full object-cover"
+                fallbackImageUrl={cafe?.imageStorageId}
+                getImageUrl={api.products.getImageUrl}
+                imageStorageId={cafe?.imageStorageId}
+              />
             </div>
             <div>
               <h1 className="font-bold text-4xl">{cafe?.name}</h1>
@@ -86,7 +92,7 @@ function CafePage() {
         <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
           {filteredProducts?.map((product) => (
             <div
-              className="card bg-base-200 shadow-md transition-shadow hover:shadow-lg"
+              className="card bg-base-100 shadow-md transition-shadow hover:shadow-lg"
               key={product._id}
             >
               <figure className="">
