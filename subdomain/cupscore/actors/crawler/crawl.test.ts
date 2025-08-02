@@ -46,6 +46,11 @@ const AVAILABLE_CRAWLERS = {
     name: '커피빈',
     brand: 'The Coffee Bean & Tea Leaf',
   },
+  hollys: {
+    file: 'hollys-crawler.ts',
+    name: '할리스',
+    brand: 'Hollys Coffee',
+  },
 } as const;
 
 type CrawlerName = keyof typeof AVAILABLE_CRAWLERS;

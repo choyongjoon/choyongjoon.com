@@ -3,45 +3,14 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AVAILABLE_CAFES } from 'shared/constants';
 import { logger } from '../../shared/logger';
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Available crawlers configuration
-const AVAILABLE_CRAWLERS = {
-  starbucks: {
-    file: 'starbucks-crawler.ts',
-    name: '스타벅스',
-  },
-  compose: {
-    file: 'compose-crawler.ts',
-    name: '컴포즈커피',
-  },
-  mega: {
-    file: 'mega-crawler.ts',
-    name: '메가커피',
-  },
-  paik: {
-    file: 'paik-crawler.ts',
-    name: '빽다방',
-  },
-  ediya: {
-    file: 'ediya-crawler.ts',
-    name: '이디야',
-  },
-  twosome: {
-    file: 'twosome-crawler.ts',
-    name: '투썸플레이스',
-  },
-  coffeebean: {
-    file: 'coffeebean-crawler.ts',
-    name: '커피빈',
-  },
-} as const;
-
-type CrawlerName = keyof typeof AVAILABLE_CRAWLERS;
+type CrawlerName = keyof typeof AVAILABLE_CAFES;
 
 // Print help information
 function printHelp(): void {
@@ -54,7 +23,7 @@ Usage:
   pnpm crawl starbucks compose         # Run Starbucks and Compose crawlers
 
 Available Crawlers:
-${Object.entries(AVAILABLE_CRAWLERS)
+${Object.entries(AVAILABLE_CAFES)
   .map(([key, crawler]) => `  ${key.padEnd(10)} - ${crawler.name}`)
   .join('\n')}
 
@@ -75,7 +44,7 @@ function parseArgs(): CrawlerName[] {
 
   if (args.length === 0) {
     // No arguments - run all crawlers
-    return Object.keys(AVAILABLE_CRAWLERS) as CrawlerName[];
+    return Object.keys(AVAILABLE_CAFES) as CrawlerName[];
   }
 
   // Validate crawler names
@@ -83,7 +52,7 @@ function parseArgs(): CrawlerName[] {
   const invalidCrawlers: string[] = [];
 
   for (const arg of args) {
-    if (arg in AVAILABLE_CRAWLERS) {
+    if (arg in AVAILABLE_CAFES) {
       validCrawlers.push(arg as CrawlerName);
     } else {
       invalidCrawlers.push(arg);
@@ -93,7 +62,7 @@ function parseArgs(): CrawlerName[] {
   if (invalidCrawlers.length > 0) {
     logger.error(`Invalid crawler names: ${invalidCrawlers.join(', ')}`);
     logger.info(
-      `Available crawlers: ${Object.keys(AVAILABLE_CRAWLERS).join(', ')}`
+      `Available crawlers: ${Object.keys(AVAILABLE_CAFES).join(', ')}`
     );
     process.exit(1);
   }
@@ -104,8 +73,8 @@ function parseArgs(): CrawlerName[] {
 // Run a single crawler
 function runCrawler(crawlerName: CrawlerName): Promise<void> {
   return new Promise((resolve, reject) => {
-    const crawler = AVAILABLE_CRAWLERS[crawlerName];
-    const crawlerPath = path.join(__dirname, crawler.file);
+    const crawler = AVAILABLE_CAFES[crawlerName];
+    const crawlerPath = path.join(__dirname, `${crawler.slug}-crawler.ts`);
 
     logger.info(`🚀 Starting ${crawler.name} crawler...`);
 

@@ -4,43 +4,12 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AVAILABLE_CAFES } from 'shared/constants';
 import { logger } from '../../shared/logger';
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Available cafes configuration
-const AVAILABLE_CAFES = {
-  starbucks: {
-    name: '스타벅스',
-    slug: 'starbucks',
-  },
-  compose: {
-    name: '컴포즈커피',
-    slug: 'compose',
-  },
-  mega: {
-    name: '메가커피',
-    slug: 'mega',
-  },
-  paik: {
-    name: '빽다방',
-    slug: 'paik',
-  },
-  ediya: {
-    name: '이디야',
-    slug: 'ediya',
-  },
-  twosome: {
-    name: '투썸플레이스',
-    slug: 'twosome',
-  },
-  coffeebean: {
-    name: '커피빈',
-    slug: 'coffeebean',
-  },
-} as const;
 
 type CafeSlug = keyof typeof AVAILABLE_CAFES;
 

@@ -16,8 +16,8 @@ export interface Product {
 }
 
 export const waitForLoad = async (page: Page) => {
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(2000);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(200); // Reduced from 500ms to 200ms
 };
 
 export const takeDebugScreenshot = async (page: Page, key: string) => {
