@@ -89,23 +89,20 @@ function CafePage() {
               className="card bg-base-200 shadow-md transition-shadow hover:shadow-lg"
               key={product._id}
             >
-              <figure className="px-4 pt-4">
+              <figure className="">
                 <ConvexImage
                   alt={product.name}
-                  className="aspect-square w-full rounded-lg object-cover"
+                  className="aspect-square w-full object-cover"
                   fallbackImageUrl={product.externalImageUrl}
                   getImageUrl={api.products.getImageUrl}
                   imageStorageId={product.imageStorageId}
                 />
               </figure>
               <div className="card-body">
-                <h3 className="card-title">{product.name}</h3>
-                <p className="mb-2 text-base-content/70 text-sm">
+                <h3 className="card-title break-keep">{product.name}</h3>
+                <p className="text-base-content/70 text-sm">
                   {product.category}
                 </p>
-                {product.description && (
-                  <p className="mb-3 text-sm">{product.description}</p>
-                )}
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     {product.price && (

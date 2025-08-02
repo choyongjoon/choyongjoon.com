@@ -21,20 +21,16 @@ function Home() {
         <div className="hero-content text-center">
           <div className="max-w-md">
             <h1 className="mb-5 font-bold text-5xl">잔점</h1>
-            <p className="mb-5 text-lg">
-              카페 음료의 모든 것을 한곳에서!
-              <br />
-              유명인 후기부터 개인별 평점까지
-            </p>
+            <p className="mb-5 text-lg">카페 음료의 모든 것을 한곳에서!</p>
             <div className="stats bg-base-100 text-base-content shadow">
               <div className="stat">
-                <div className="stat-title">등록 카페</div>
+                <div className="stat-title">브랜드 카페 수</div>
                 <div className="stat-value text-primary">
                   {cafes?.length || 0}
                 </div>
               </div>
               <div className="stat">
-                <div className="stat-title">등록 상품</div>
+                <div className="stat-title">상품 수</div>
                 <div className="stat-value text-primary">
                   {totalProducts || 0}
                 </div>
