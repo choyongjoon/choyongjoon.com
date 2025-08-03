@@ -25,10 +25,30 @@ export default defineSchema({
     updatedAt: v.number(),
     removedAt: v.optional(v.number()), // When product was marked as removed
     shortId: v.string(), // Short URL-friendly ID
+    // Review aggregation fields
+    averageRating: v.optional(v.number()), // Cached average rating for performance
+    totalReviews: v.optional(v.number()), // Cached total review count
   })
     .index('by_cafe', ['cafeId'])
     .index('by_category', ['category'])
     .index('by_external_id', ['externalId'])
     .index('by_cafe_active', ['cafeId', 'isActive'])
-    .index('by_short_id', ['shortId']),
+    .index('by_short_id', ['shortId'])
+    .index('by_rating', ['averageRating']),
+  reviews: defineTable({
+    productId: v.id('products'),
+    userId: v.string(), // Clerk user ID
+    userName: v.optional(v.string()), // User display name for performance
+    userImageUrl: v.optional(v.string()), // User profile image URL
+    rating: v.number(), // 1-5 scale (1=최악, 2=별로, 3=보통, 3.5=좋음, 4=추천, 4.5=강력추천, 5=최고)
+    text: v.optional(v.string()), // Optional review text
+    imageStorageIds: v.optional(v.array(v.id('_storage'))), // Up to 2 photos
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    isVisible: v.optional(v.boolean()), // For moderation purposes
+  })
+    .index('by_product', ['productId'])
+    .index('by_user', ['userId'])
+    .index('by_product_rating', ['productId', 'rating'])
+    .index('by_created_at', ['createdAt']),
 });

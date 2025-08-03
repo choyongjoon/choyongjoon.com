@@ -4,6 +4,8 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import type { Id } from 'convex/_generated/dataModel';
 import { api } from '../../convex/_generated/api';
 import { ConvexImage } from '../components/ConvexImage';
+import { RatingStars } from '../components/reviews/RatingStars';
+import { ReviewSection } from '../components/reviews/ReviewSection';
 
 export const Route = createFileRoute('/product/$shortId')({
   component: ProductPage,
@@ -27,6 +29,10 @@ function ProductPage() {
 
   const { data: cafe } = useSuspenseQuery(
     convexQuery(api.cafes.getById, { cafeId: product?.cafeId as Id<'cafes'> })
+  );
+
+  const { data: reviewStats } = useSuspenseQuery(
+    convexQuery(api.reviews.getProductStats, { productId: product?._id as Id<'products'> })
   );
 
   if (!product) {
@@ -113,6 +119,19 @@ function ProductPage() {
                   <div className="badge badge-secondary badge-lg">
                     {product.category}
                   </div>
+                </div>
+              )}
+
+              {/* Rating Display */}
+              {reviewStats && reviewStats.totalReviews > 0 && (
+                <div className="mb-4 flex items-center gap-3">
+                  <RatingStars rating={reviewStats.averageRating} readonly size="md" />
+                  <span className="font-medium text-primary">
+                    {reviewStats.averageRating.toFixed(1)}
+                  </span>
+                  <span className="text-sm text-base-content/60">
+                    ({reviewStats.totalReviews}개 리뷰)
+                  </span>
                 </div>
               )}
             </div>
@@ -226,6 +245,14 @@ function ProductPage() {
           </div>
         </div>
 
+        {/* Reviews Section */}
+        <div className="mt-16">
+          <div className="divider">
+            <h2 className="font-bold text-2xl">리뷰</h2>
+          </div>
+          <ReviewSection productId={product._id} />
+        </div>
+
         {/* Related Products */}
         {cafe && (
           <div className="mt-16">
@@ -287,10 +314,18 @@ function RelatedProducts({
           <div className="card-body p-4">
             <h3 className="card-title text-sm leading-tight">{product.name}</h3>
             {product.category && (
-              <p className="text-base-content/60 text-xs">{product.category}</p>
+              <p className="text-xs text-base-content/60">{product.category}</p>
+            )}
+            {product.averageRating && product.totalReviews && product.totalReviews > 0 && (
+              <div className="flex items-center gap-1">
+                <RatingStars rating={product.averageRating} readonly size="sm" />
+                <span className="text-xs text-base-content/60">
+                  ({product.totalReviews})
+                </span>
+              </div>
             )}
             {product.price && (
-              <p className="font-semibold text-primary text-sm">
+              <p className="text-sm font-semibold text-primary">
                 {product.price.toLocaleString()}원
               </p>
             )}
