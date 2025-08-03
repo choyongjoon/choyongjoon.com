@@ -1,11 +1,10 @@
 #!/usr/bin/env tsx
 
+import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { ConvexHttpClient } from 'convex/browser';
-import { AVAILABLE_CAFES } from 'shared/constants';
-import { api } from '../../convex/_generated/api';
+import { AVAILABLE_CAFES } from '../../shared/constants';
 import { logger } from '../../shared/logger';
 import { ProductCategorizer } from './categorizer';
 import type {
@@ -13,43 +12,20 @@ import type {
   CategorizerResult,
   CategorizeStats,
   Category,
-  Product,
+  CrawledProduct,
 } from './types';
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-type CafeSlug = keyof typeof AVAILABLE_CAFES;
-
-// Initialize Convex client
-const convexUrl = process.env.VITE_CONVEX_URL;
-if (!convexUrl) {
-  logger.error('CONVEX_URL environment variable is required');
-  process.exit(1);
-}
-
-const convex = new ConvexHttpClient(convexUrl);
 
 // Initialize categorizer
 const categorizer = new ProductCategorizer();
 
-// Helper function to handle cafe name validation and addition
-function handleCafeSlug(arg: string, cafeSlugs: CafeSlug[]): void {
-  if (arg in AVAILABLE_CAFES) {
-    cafeSlugs.push(arg as CafeSlug);
-  } else {
-    logger.error(`Invalid cafe name: ${arg}`);
-    logger.info(`Available cafes: ${Object.keys(AVAILABLE_CAFES).join(', ')}`);
-    process.exit(1);
-  }
-}
 
 // Parse command line arguments
-function parseArgs(): { cafeSlugs: CafeSlug[]; options: CategorizeOptions } {
+function parseArgs(): { options: CategorizeOptions } {
   const args = process.argv.slice(2);
   const options: CategorizeOptions = {};
-  const cafeSlugs: CafeSlug[] = [];
 
   // Parse flags
   for (let i = 0; i < args.length; i++) {
@@ -81,13 +57,12 @@ function parseArgs(): { cafeSlugs: CafeSlug[]; options: CategorizeOptions } {
         process.exit(0);
         break;
       default:
-        // This should be a cafe name
-        handleCafeSlug(arg, cafeSlugs);
+        // Ignore unknown arguments - no need to warn since we removed cafe support
         break;
     }
   }
 
-  return { cafeSlugs, options };
+  return { options };
 }
 
 // Print help information
@@ -96,86 +71,129 @@ function printHelp(): void {
 🏷️  Product Categorizer
 
 Usage:
-  pnpm categorize                           # Categorize all products
-  pnpm categorize starbucks                 # Categorize only Starbucks products
-  pnpm categorize starbucks compose         # Categorize Starbucks and Compose products
+  pnpm categorize                           # Process most recent JSON file for each cafe
 
-Available Cafes:
-${Object.entries(AVAILABLE_CAFES)
-  .map(([key, cafe]) => `  ${key.padEnd(10)} - ${cafe.name}`)
-  .join('\n')}
+Description:
+  Categorizes products from crawler JSON files. Runs between crawl and upload commands.
+  Assigns Korean categories: 커피, 차, 블렌디드, 스무디, 주스, 에이드, 그 외
+  Automatically processes the most recent crawler file for each available cafe.
 
 Options:
-  --dry-run              Preview changes without updating database
+  --dry-run              Preview changes without updating files
   --interactive          Ask for human input on uncertain categorizations
   --verbose              Show detailed output during categorization
   --confidence <level>   Process only specific confidence levels (all|low|medium)
-  --limit <number>       Limit number of products to process
+  --limit <number>       Limit number of products to process per file
   --force                Override all categories, even if they match current rules
   --help                 Show this help message
 
 Examples:
-  pnpm categorize --dry-run --verbose       # Preview with detailed output
+  pnpm categorize                           # Process most recent files for all cafes
+  pnpm categorize --dry-run --verbose       # Preview categorization with detailed output
   pnpm categorize --interactive             # Interactive mode for learning
   pnpm categorize --confidence low          # Only process low confidence items
   pnpm categorize --force                   # Force recategorization of all products
 `);
 }
 
-// Get products from Convex database
-async function getProducts(cafeSlug?: CafeSlug, limit?: number) {
+// Find the latest file for a specific cafe (same logic as upload command)
+function findLatestFileForCafe(cafeSlug: string): string | null {
+  const outputDir = path.join(process.cwd(), 'actors', 'crawler', 'crawler-outputs');
+
+  if (!fs.existsSync(outputDir)) {
+    return null;
+  }
+
+  const cafePattern = `${cafeSlug}-products-`;
+
+  const files = fs
+    .readdirSync(outputDir)
+    .filter((file) => file.startsWith(cafePattern) && file.endsWith('.json'))
+    .map((file) => ({
+      name: file,
+      path: path.join(outputDir, file),
+      mtime: fs.statSync(path.join(outputDir, file)).mtime,
+    }))
+    .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+
+  return files.length > 0 ? files[0].path : null;
+}
+
+// Find the most recent file for each available cafe
+function findRecentCrawlerFiles(): string[] {
+  const outputDir = path.join(process.cwd(), 'actors', 'crawler', 'crawler-outputs');
+  
+  if (!fs.existsSync(outputDir)) {
+    logger.warn('Crawler outputs directory does not exist');
+    return [];
+  }
+
   try {
-    if (cafeSlug) {
-      // Get cafe ID first
-      const cafes = await convex.query(api.cafes.list);
-      const cafe = cafes.find((c) => c.slug === cafeSlug);
+    const recentFiles: string[] = [];
+    const cafeKeys = Object.keys(AVAILABLE_CAFES) as (keyof typeof AVAILABLE_CAFES)[];
+    
+    for (const cafeKey of cafeKeys) {
+      const cafe = AVAILABLE_CAFES[cafeKey];
+      const latestFile = findLatestFileForCafe(cafe.slug);
+      
+      if (latestFile) {
+        recentFiles.push(latestFile);
+      } 
+    }
+    
+    logger.info(`🔍 Found ${recentFiles.length} recent crawler files (most recent per cafe):`);
+    recentFiles.forEach((file: string) => {
+      logger.info(`  📄 ${path.basename(file)}`);
+    });
+    
+    return recentFiles;
+  } catch (error) {
+    logger.error('Failed to find crawler files:', error);
+    return [];
+  }
+}
 
-      if (!cafe) {
-        throw new Error(`Cafe not found: ${cafeSlug}`);
-      }
-
-      const products = await convex.query(api.products.getByCafe, {
-        cafeId: cafe._id,
-      });
-      return limit ? products.slice(0, limit) : products;
+// Read products from JSON file
+async function getProductsFromJson(
+  filePath: string,
+  limit?: number
+): Promise<CrawledProduct[]> {
+  try {
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`JSON file not found: ${filePath}`);
     }
 
-    const products = await convex.query(api.products.list);
+    const jsonData = fs.readFileSync(filePath, 'utf-8');
+    const products: CrawledProduct[] = JSON.parse(jsonData);
+
+    logger.info(
+      `📁 Loaded ${products.length} products from JSON file: ${path.basename(filePath)}`
+    );
     return limit ? products.slice(0, limit) : products;
   } catch (error) {
-    logger.error('Failed to fetch products from database:', error);
+    logger.error('Failed to read products from JSON file:', error);
     throw error;
   }
 }
 
-// Update product category in database
-async function updateProductCategory(
-  productId: string,
-  category: Category,
-  dryRun = false
-) {
-  if (dryRun) {
-    logger.info(
-      `[DRY RUN] Would update product ${productId} to category: ${category}`
-    );
-    return true;
-  }
-
+// Write products back to JSON file
+async function writeProductsToJson(
+  filePath: string,
+  products: CrawledProduct[]
+): Promise<void> {
   try {
-    await convex.mutation(api.products.updateCategory, {
-      productId,
-      category,
-    });
-    return true;
+    const jsonData = JSON.stringify(products, null, 2);
+    fs.writeFileSync(filePath, jsonData, 'utf-8');
+    logger.info(
+      `💾 Wrote ${products.length} products to JSON file: ${filePath}`
+    );
   } catch (error) {
-    logger.error(`Failed to update product ${productId}:`, error);
-    if (error instanceof Error) {
-      logger.error(`Error message: ${error.message}`);
-      logger.error(`Error stack: ${error.stack}`);
-    }
-    return false;
+    logger.error('Failed to write products to JSON file:', error);
+    throw error;
   }
 }
+
+
 
 // Interactive mode for getting human input
 function getHumanCategoryChoice(
@@ -222,7 +240,7 @@ function getHumanCategoryChoice(
 
 // Process a single product
 async function processProduct(
-  product: Product,
+  product: CrawledProduct,
   options: CategorizeOptions,
   stats: CategorizeStats
 ): Promise<void> {
@@ -272,7 +290,7 @@ function shouldSkipProduct(
 
 // Get final category, handling interactive mode
 async function getFinalCategory(
-  product: Product,
+  product: CrawledProduct,
   result: CategorizerResult,
   options: CategorizeOptions,
   stats: CategorizeStats
@@ -316,7 +334,7 @@ function updateCategoryStats(
 
 // Handle category update and logging
 async function handleCategoryUpdate(
-  product: Product,
+  product: CrawledProduct,
   finalCategory: Category,
   result: CategorizerResult,
   options: CategorizeOptions,
@@ -324,53 +342,48 @@ async function handleCategoryUpdate(
 ): Promise<void> {
   const shouldUpdate = options.force || product.category !== finalCategory;
 
+  // Format the applied rule for debugging
+  const ruleInfo = result.matchedRule ? ` | Rule: ${result.matchedRule}` : '';
+  const externalCategoryInfo = product.externalCategory ? ` | External: "${product.externalCategory}"` : '';
+  
   if (shouldUpdate) {
-    const success = await updateProductCategory(
-      product._id,
-      finalCategory,
-      options.dryRun
+    // Update the category in memory
+    const oldCategory = product.category;
+    product.category = finalCategory;
+    stats.updated++;
+    
+    const action = options.force && oldCategory === finalCategory ? 'Forced' : 'Updated';
+    logger.info(
+      `✅ ${action} "${product.name}": ${oldCategory} → ${finalCategory} | Source: ${result.source} | Confidence: ${result.confidence}${ruleInfo}${externalCategoryInfo}`
     );
-    if (success) {
-      stats.updated++;
-      if (options.verbose) {
-        const action =
-          options.force && product.category === finalCategory
-            ? 'Forced'
-            : 'Updated';
-        logger.info(
-          `✅ ${action} "${product.name}": ${product.category} → ${finalCategory} (${result.source}, ${result.confidence})`
-        );
-      }
-    } else {
-      stats.errors++;
-      logger.error(`❌ Failed to update "${product.name}"`);
-    }
   } else {
     stats.unchanged++;
     if (options.verbose) {
       logger.info(
-        `➡️  Unchanged "${product.name}": ${finalCategory} (${result.source}, ${result.confidence})`
+        `➡️  Unchanged "${product.name}": ${finalCategory} | Source: ${result.source} | Confidence: ${result.confidence}${ruleInfo}${externalCategoryInfo}`
       );
     }
   }
 }
 
-// Process products for a single cafe
-async function processCafeProducts(
-  cafeSlug: CafeSlug,
+// Process products from JSON file
+async function processJsonProducts(
+  filePath: string,
   options: CategorizeOptions,
   stats: CategorizeStats
-): Promise<void> {
-  const cafe = AVAILABLE_CAFES[cafeSlug];
-  logger.info(`🏪 Processing ${cafe.name} products...`);
+): Promise<CrawledProduct[]> {
+  logger.info(`📁 Processing products from JSON file: ${filePath}`);
 
-  const products = await getProducts(cafeSlug, options.limit);
+  const products = await getProductsFromJson(filePath, options.limit);
   logger.info(`📦 Found ${products.length} products`);
 
   for (const product of products) {
     await processProduct(product, options, stats);
   }
+
+  return products;
 }
+
 
 // Print categorization summary
 function printSummary(
@@ -423,10 +436,7 @@ function printSummary(
 }
 
 // Main categorization function
-async function categorizeProducts(
-  cafeSlugs: CafeSlug[],
-  options: CategorizeOptions
-): Promise<void> {
+async function categorizeProducts(options: CategorizeOptions): Promise<void> {
   const stats: CategorizeStats = {
     processed: 0,
     updated: 0,
@@ -439,14 +449,32 @@ async function categorizeProducts(
   const startTime = Date.now();
 
   try {
-    // Process each cafe or all if no specific cafes
-    const cafesToProcess =
-      cafeSlugs.length > 0
-        ? cafeSlugs
-        : (Object.keys(AVAILABLE_CAFES) as CafeSlug[]);
-
-    for (const cafeSlug of cafesToProcess) {
-      await processCafeProducts(cafeSlug, options, stats);
+    // Process all recent crawler JSON files (most recent per cafe)
+    logger.info('🤖 Processing most recent crawler files for each cafe');
+    const recentFiles = findRecentCrawlerFiles();
+    
+    if (recentFiles.length === 0) {
+      logger.warn('⚠️  No recent crawler files found. Run crawlers first.');
+      return;
+    }
+    
+    // Process each file
+    for (const filePath of recentFiles) {
+      logger.info(`\n${'='.repeat(60)}`);
+      logger.info(`🏪 Processing: ${path.basename(filePath)}`);
+      logger.info(`${'='.repeat(60)}`);
+      
+      try {
+        const processedProducts = await processJsonProducts(filePath, options, stats);
+        
+        // Always write back to file unless dry-run
+        if (!options.dryRun) {
+          await writeProductsToJson(filePath, processedProducts);
+        }
+      } catch (error) {
+        logger.error(`Failed to process file ${path.basename(filePath)}:`, error);
+        stats.errors++;
+      }
     }
   } catch (error) {
     logger.error('Error during categorization:', error);
@@ -459,14 +487,11 @@ async function categorizeProducts(
 // Main execution function
 async function main() {
   try {
-    const { cafeSlugs, options } = parseArgs();
+    const { options } = parseArgs();
 
     logger.info('🏷️  Product Categorizer Starting');
-    if (cafeSlugs.length > 0) {
-      logger.info(`🏪 Cafes to process: ${cafeSlugs.join(', ')}`);
-    } else {
-      logger.info('🏪 Processing all cafes');
-    }
+    logger.info('🤖 Will process most recent crawler file for each cafe');
+    logger.info('💾 Categories will be written back to JSON files automatically');
 
     if (options.dryRun) {
       logger.info('🔍 DRY RUN MODE - No data will be updated');
@@ -482,7 +507,7 @@ async function main() {
 
     logger.info('='.repeat(50));
 
-    await categorizeProducts(cafeSlugs, options);
+    await categorizeProducts(options);
 
     logger.info('🎉 Categorization completed successfully!');
   } catch (error) {

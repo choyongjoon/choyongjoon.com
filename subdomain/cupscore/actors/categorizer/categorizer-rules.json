@@ -94,7 +94,8 @@
       "confidence": "high",
       "createdBy": "system",
       "createdAt": 1722556800000,
-      "usageCount": 36
+      "usageCount": 36,
+      "priority": 5
     },
     {
       "id": "pattern-tea-keywords",
@@ -115,6 +116,32 @@
       "createdBy": "system",
       "createdAt": 1722556800000,
       "usageCount": 0
+    },
+    {
+      "id": "pattern-matcha-latte-tea",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["말차라떼", "말차 라떼", "말차라테", "말차 라테"]
+      },
+      "targetCategory": "차",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055500000,
+      "usageCount": 0,
+      "priority": 1
+    },
+    {
+      "id": "pattern-mango-latte-other",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["망고라떼", "망고 라떼", "망고라테", "망고 라테"]
+      },
+      "targetCategory": "그 외",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754055500000,
+      "usageCount": 0,
+      "priority": 1
     },
     {
       "id": "pattern-strawberry-latte-exclusion",

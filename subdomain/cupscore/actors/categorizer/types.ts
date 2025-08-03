@@ -52,7 +52,6 @@ export interface CategorizeOptions {
   interactive?: boolean;
   verbose?: boolean;
   confidence?: 'all' | 'low' | 'medium';
-  cafeSlug?: string;
   limit?: number;
   force?: boolean;
 }
@@ -80,4 +79,16 @@ export interface Product {
   name: string;
   category?: string; // Allow any string, not just Category enum
   externalCategory?: string;
+}
+
+export interface CrawledProduct {
+  name: string;
+  nameEn?: string | null;
+  description?: string | null;
+  price?: string | null;
+  externalImageUrl?: string;
+  category?: string;
+  externalCategory: string;
+  externalId: string;
+  externalUrl: string;
 }
