@@ -94,36 +94,46 @@ function ProfilePage() {
         <div className="lg:col-span-1">
           <div className="card bg-base-100 shadow-md">
             <div className="card-body">
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <span className="loading loading-spinner loading-md" />
-                </div>
-              ) : userStats ? (
-                <>
-                  <div className="mb-6 text-center">
-                    <div className="stat">
-                      <div className="stat-title">평균 평점</div>
-                      <div className="stat-value text-primary">
-                        {userStats.averageRating.toFixed(1)}
-                      </div>
-                      <div className="stat-desc">
-                        총 {userStats.totalReviews}개의 평가
-                      </div>
+              {(() => {
+                if (isLoading) {
+                  return (
+                    <div className="flex justify-center py-8">
+                      <span className="loading loading-spinner loading-md" />
                     </div>
-                  </div>
+                  );
+                }
 
-                  <UserRatingHistogram
-                    ratingDistribution={userStats.ratingDistribution}
-                    totalReviews={userStats.totalReviews}
-                  />
-                </>
-              ) : (
-                <div className="py-8 text-center">
-                  <p className="text-base-content/60">
-                    통계를 불러올 수 없습니다.
-                  </p>
-                </div>
-              )}
+                if (userStats) {
+                  return (
+                    <>
+                      <div className="mb-6 text-center">
+                        <div className="stat">
+                          <div className="stat-title">평균 평점</div>
+                          <div className="stat-value text-primary">
+                            {userStats.averageRating.toFixed(1)}
+                          </div>
+                          <div className="stat-desc">
+                            총 {userStats.totalReviews}개의 평가
+                          </div>
+                        </div>
+                      </div>
+
+                      <UserRatingHistogram
+                        ratingDistribution={userStats.ratingDistribution}
+                        totalReviews={userStats.totalReviews}
+                      />
+                    </>
+                  );
+                }
+
+                return (
+                  <div className="py-8 text-center">
+                    <p className="text-base-content/60">
+                      통계를 불러올 수 없습니다.
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -134,94 +144,109 @@ function ProfilePage() {
             <div className="card-body">
               <h2 className="card-title mb-4">내 평가</h2>
 
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <span className="loading loading-spinner loading-md" />
-                </div>
-              ) : reviewsError ? (
-                <div className="py-8 text-center">
-                  <p className="mb-4 text-error">
-                    평가를 불러오는 중 오류가 발생했습니다.
-                  </p>
-                  <p className="text-base-content/60 text-sm">
-                    {String(reviewsError)}
-                  </p>
-                </div>
-              ) : userReviews?.length > 0 ? (
-                <div className="space-y-4">
-                  {userReviews.map((review) => (
-                    <div
-                      className="border-base-200 border-b pb-4 last:border-b-0 last:pb-0"
-                      key={review._id}
-                    >
-                      {/* Product link */}
-                      {review.product && (
-                        <div className="mb-3">
-                          <Link
-                            className="link link-primary font-medium"
-                            params={{ shortId: review.product.shortId }}
-                            to="/product/$shortId"
-                          >
-                            {review.product.name}
-                          </Link>
-                          <p className="text-base-content/60 text-sm">
-                            {new Date(review.createdAt).toLocaleDateString(
-                              'ko-KR'
-                            )}
-                            {review.updatedAt !== review.createdAt &&
-                              ' (수정됨)'}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Review content */}
-                      <div className="pl-0">
-                        <div className="mb-2 flex items-center gap-2">
-                          <div className="badge badge-primary badge-md">
-                            {review.ratingLabel}
-                          </div>
-                        </div>
-
-                        {review.text && (
-                          <p className="mb-3 text-base-content">
-                            {review.text}
-                          </p>
-                        )}
-
-                        {review.imageUrls && review.imageUrls.length > 0 && (
-                          <div className="grid max-w-md grid-cols-2 gap-2">
-                            {review.imageUrls.map((imageUrl, index) => (
-                              <div
-                                className="aspect-square overflow-hidden rounded-lg"
-                                key={`${review._id}-image-${index}`}
-                              >
-                                <img
-                                  alt={`평가 이미지 ${index + 1}`}
-                                  className="h-full w-full object-cover"
-                                  src={imageUrl}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+              {(() => {
+                if (isLoading) {
+                  return (
+                    <div className="flex justify-center py-8">
+                      <span className="loading loading-spinner loading-md" />
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-8 text-center">
-                  <p className="mb-4 text-base-content/60">
-                    아직 작성한 평가가 없습니다.
-                  </p>
-                  <Link
-                    className="btn btn-primary"
-                    search={{ searchTerm: '', cafeId: '', category: '' }}
-                    to="/search"
-                  >
-                    상품 찾아보기
-                  </Link>
-                </div>
-              )}
+                  );
+                }
+
+                if (reviewsError) {
+                  return (
+                    <div className="py-8 text-center">
+                      <p className="mb-4 text-error">
+                        평가를 불러오는 중 오류가 발생했습니다.
+                      </p>
+                      <p className="text-base-content/60 text-sm">
+                        {String(reviewsError)}
+                      </p>
+                    </div>
+                  );
+                }
+
+                if (userReviews?.length > 0) {
+                  return (
+                    <div className="space-y-4">
+                      {userReviews.map((review) => (
+                        <div
+                          className="border-base-200 border-b pb-4 last:border-b-0 last:pb-0"
+                          key={review._id}
+                        >
+                          {/* Product link */}
+                          {review.product && (
+                            <div className="mb-3">
+                              <Link
+                                className="link link-primary font-medium"
+                                params={{ shortId: review.product.shortId }}
+                                to="/product/$shortId"
+                              >
+                                {review.product.name}
+                              </Link>
+                              <p className="text-base-content/60 text-sm">
+                                {new Date(review.createdAt).toLocaleDateString(
+                                  'ko-KR'
+                                )}
+                                {review.updatedAt !== review.createdAt &&
+                                  ' (수정됨)'}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Review content */}
+                          <div className="pl-0">
+                            <div className="mb-2 flex items-center gap-2">
+                              <div className="badge badge-primary badge-md">
+                                {review.ratingLabel}
+                              </div>
+                            </div>
+
+                            {review.text && (
+                              <p className="mb-3 text-base-content">
+                                {review.text}
+                              </p>
+                            )}
+
+                            {review.imageUrls &&
+                              review.imageUrls.length > 0 && (
+                                <div className="grid max-w-md grid-cols-2 gap-2">
+                                  {review.imageUrls.map((imageUrl, index) => (
+                                    <div
+                                      className="aspect-square overflow-hidden rounded-lg"
+                                      key={`${review._id}-image-${index}`}
+                                    >
+                                      <img
+                                        alt={`평가 이미지 ${index + 1}`}
+                                        className="h-full w-full object-cover"
+                                        src={imageUrl}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="py-8 text-center">
+                    <p className="mb-4 text-base-content/60">
+                      아직 작성한 평가가 없습니다.
+                    </p>
+                    <Link
+                      className="btn btn-primary"
+                      search={{ searchTerm: '', cafeId: '', category: '' }}
+                      to="/search"
+                    >
+                      상품 찾아보기
+                    </Link>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
