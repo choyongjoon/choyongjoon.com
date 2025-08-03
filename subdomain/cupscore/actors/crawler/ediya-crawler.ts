@@ -63,7 +63,7 @@ const CRAWLER_CONFIG = {
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'] as string[],
   },
-} as const;
+};
 
 // ================================================
 // DATA EXTRACTION FUNCTIONS
