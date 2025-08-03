@@ -5,6 +5,7 @@ import {
   UserButton,
 } from '@clerk/tanstack-react-start';
 import { Link } from '@tanstack/react-router';
+import { SearchIcon, UserIcon } from './icons';
 
 export function NavBar() {
   return (
@@ -55,22 +56,7 @@ export function NavBar() {
           search={{ searchTerm: '', cafeId: '', category: '' }}
           to="/search"
         >
-          <svg
-            aria-label="Search"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <title>Search</title>
-            <path
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-            />
-          </svg>
+          <SearchIcon aria-label="Search" />
         </Link>
         <SignedIn>
           <UserButton />
@@ -78,21 +64,7 @@ export function NavBar() {
         <SignedOut>
           <SignInButton>
             <button className="btn btn-ghost btn-circle" type="button">
-              <svg
-                className="size-6"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <title>User</title>
-                <path
-                  d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
+              <UserIcon />
             </button>
           </SignInButton>
         </SignedOut>
