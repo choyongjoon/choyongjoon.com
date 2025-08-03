@@ -83,7 +83,7 @@ function ProductPage() {
             <div className="w-full max-w-md">
               <ConvexImage
                 alt={product.name}
-                className="aspect-square w-full rounded-lg object-cover shadow-lg"
+                className="aspect-square w-full rounded-lg bg-base-100 object-cover shadow-lg"
                 fallbackImageUrl={product.externalImageUrl}
                 getImageUrl={api.products.getImageUrl}
                 imageStorageId={product.imageStorageId}
