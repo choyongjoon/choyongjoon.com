@@ -1,4 +1,7 @@
 {
+  "[javascript][typescript][javascriptreact][typescriptreact][json][jsonc][css][graphql]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
   "files.watcherExclude": {
     "**/routeTree.gen.ts": true
   },
