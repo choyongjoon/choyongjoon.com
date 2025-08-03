@@ -295,6 +295,98 @@ export const generateUploadUrl = mutation({
 });
 
 /**
+ * Get all reviews by a specific user
+ */
+export const getUserReviews = query({
+  args: {
+    userId: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { userId, limit = 50 }) => {
+    const reviews = await ctx.db
+      .query('reviews')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .filter((q) => q.neq(q.field('isVisible'), false))
+      .order('desc')
+      .take(limit);
+
+    // Get product information for each review
+    const reviewsWithProducts = await Promise.all(
+      reviews.map(async (review) => {
+        const product = await ctx.db.get(review.productId);
+
+        let imageUrls: string[] = [];
+        if (review.imageStorageIds) {
+          imageUrls = await Promise.all(
+            review.imageStorageIds.map(async (storageId) => {
+              return (await ctx.storage.getUrl(storageId)) || '';
+            })
+          );
+        }
+
+        return {
+          ...review,
+          product,
+          imageUrls,
+          ratingLabel:
+            RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
+        };
+      })
+    );
+
+    return reviewsWithProducts;
+  },
+});
+
+/**
+ * Get user's review statistics
+ */
+export const getUserStats = query({
+  args: { userId: v.string() },
+  handler: async (ctx, { userId }) => {
+    const reviews = await ctx.db
+      .query('reviews')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .filter((q) => q.neq(q.field('isVisible'), false))
+      .collect();
+
+    if (reviews.length === 0) {
+      return {
+        totalReviews: 0,
+        averageRating: 0,
+        ratingDistribution: { 1: 0, 2: 0, 3: 0, 3.5: 0, 4: 0, 4.5: 0, 5: 0 },
+      };
+    }
+
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    const averageRating = Number((totalRating / reviews.length).toFixed(1));
+
+    // Count distribution of ratings
+    const ratingDistribution: RatingDistribution = {
+      1: 0,
+      2: 0,
+      3: 0,
+      3.5: 0,
+      4: 0,
+      4.5: 0,
+      5: 0,
+    };
+    for (const review of reviews) {
+      const rating = review.rating as keyof typeof ratingDistribution;
+      if (rating in ratingDistribution) {
+        ratingDistribution[rating]++;
+      }
+    }
+
+    return {
+      totalReviews: reviews.length,
+      averageRating,
+      ratingDistribution,
+    };
+  },
+});
+
+/**
  * Get recent reviews across all products (for homepage, etc.)
  */
 export const getRecentReviews = query({

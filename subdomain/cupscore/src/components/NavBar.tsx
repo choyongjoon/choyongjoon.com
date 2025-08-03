@@ -5,7 +5,7 @@ import {
   UserButton,
 } from '@clerk/tanstack-react-start';
 import { Link } from '@tanstack/react-router';
-import { SearchIcon, UserIcon } from './icons';
+import { BookmarkIcon, SearchIcon, UserIcon } from './icons';
 
 export function NavBar() {
   return (
@@ -59,6 +59,9 @@ export function NavBar() {
           <SearchIcon aria-label="Search" />
         </Link>
         <SignedIn>
+          <Link className="btn btn-ghost btn-circle mr-2" to="/profile">
+            <BookmarkIcon />
+          </Link>
           <UserButton />
         </SignedIn>
         <SignedOut>
