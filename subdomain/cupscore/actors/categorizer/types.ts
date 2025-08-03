@@ -78,6 +78,6 @@ export interface CategorizeStats {
 export interface Product {
   _id: string;
   name: string;
-  category: string; // Allow any string, not just Category enum
+  category?: string; // Allow any string, not just Category enum
   externalCategory?: string;
 }

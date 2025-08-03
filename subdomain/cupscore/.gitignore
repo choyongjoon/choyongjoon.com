@@ -42,3 +42,9 @@ convex.log
 # Temporary files
 *.tmp
 *.temp
+
+# Build output
+dist/
+
+# Netlify
+.netlify/
