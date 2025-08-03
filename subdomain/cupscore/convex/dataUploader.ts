@@ -40,7 +40,6 @@ async function uploadProductsToDatabase(
 ) {
   for (const product of products) {
     try {
-      // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing required for database consistency
       const result = await ctx.runMutation(api.products.upsertProduct, {
         ...product,
         cafeId,
@@ -277,7 +276,6 @@ export const bulkDownloadImages = mutation({
       results.processed++;
 
       try {
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing required for rate limiting external API calls
         const result = await ctx.runMutation(
           api.dataUploader.downloadAndStoreImage,
           {

@@ -122,7 +122,6 @@ async function main() {
     // Run crawlers sequentially to avoid resource conflicts
     for (const crawlerName of crawlersToRun) {
       try {
-        // biome-ignore lint/nursery/noAwaitInLoop: run crawler sequentially
         await runCrawler(crawlerName);
         successCount++;
       } catch (error) {

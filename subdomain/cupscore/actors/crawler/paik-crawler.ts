@@ -83,7 +83,6 @@ async function extractCategoryUrls(
     const categories: Array<{ url: string; name: string }> = [];
 
     for (const tab of categoryTabs) {
-      // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing needed for category extraction
       const [href, text] = await Promise.all([
         tab.getAttribute('href'),
         tab.textContent(),
@@ -262,7 +261,6 @@ async function extractProductsFromPage(
       try {
         const menuItem = menuItems[i];
 
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential product processing needed for data extraction
         const [name, imageUrl, description] = await Promise.all([
           extractProductName(menuItem),
           extractProductImage(menuItem),

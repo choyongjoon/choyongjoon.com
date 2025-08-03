@@ -173,6 +173,8 @@ function findOrCreateTestFile(cafeSlug: string): string {
   return generateTestData(cafeSlug);
 }
 
+const processedRegex = /processed:\s*(\d+)/i;
+
 // Run a single upload test with dry-run mode
 function runUploadTest(cafeSlug: CafeSlug): Promise<TestResult> {
   return new Promise((resolve) => {
@@ -233,7 +235,7 @@ function runUploadTest(cafeSlug: CafeSlug): Promise<TestResult> {
       const duration = Date.now() - startTime;
 
       // Try to extract product count from output
-      const productMatches = output.match(/processed:\s*(\d+)/i);
+      const productMatches = output.match(processedRegex);
       const productsFound = productMatches
         ? Number.parseInt(productMatches[1], 10)
         : 0;
@@ -408,7 +410,6 @@ async function main(): Promise<void> {
     // Run upload tests sequentially to avoid conflicts
     for (const cafeSlug of cafesToTest) {
       try {
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential testing required
         const result = await runUploadTest(cafeSlug);
         results.push(result);
       } catch (error) {

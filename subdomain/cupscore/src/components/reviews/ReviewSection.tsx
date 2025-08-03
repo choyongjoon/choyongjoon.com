@@ -1,6 +1,6 @@
 import { useUser } from '@clerk/tanstack-react-start';
-import { convexQuery } from '@convex-dev/react-query';
-import { useQuery } from '@tanstack/react-query';
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Id } from 'convex/_generated/dataModel';
 import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
@@ -13,8 +13,9 @@ interface ReviewSectionProps {
 
 export function ReviewSection({ productId }: ReviewSectionProps) {
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const [editingReview, setEditingReview] = useState(false);
+  const [_editingReview, setEditingReview] = useState(false);
 
   // Get review statistics
   const { data: reviewStats } = useQuery(
@@ -33,6 +34,14 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
       userId: user?.id || '',
     }),
     enabled: !!user?.id,
+  });
+
+  // Delete review mutation
+  const deleteReviewMutation = useMutation({
+    mutationFn: useConvexMutation(api.reviews.deleteReview),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
   });
 
   const handleWriteReview = () => {
@@ -58,6 +67,26 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
   const handleFormCancel = () => {
     setShowForm(false);
     setEditingReview(false);
+  };
+
+  const handleDeleteReview = async (reviewId: Id<'reviews'>) => {
+    if (!user) {
+      alert('리뷰를 삭제하려면 로그인이 필요합니다.');
+      return;
+    }
+
+    if (!confirm('정말로 이 리뷰를 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      await deleteReviewMutation.mutateAsync({
+        reviewId,
+        userId: user.id,
+      });
+    } catch {
+      alert('리뷰 삭제에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
   const hasUserReview = !!userReview;
@@ -111,10 +140,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
               key={review._id}
               onDelete={
                 review.userId === user?.id
-                  ? () => {
-                      // TODO: Implement delete functionality
-                      console.log('Delete review:', review._id);
-                    }
+                  ? () => handleDeleteReview(review._id)
                   : undefined
               }
               onEdit={review.userId === user?.id ? handleEditReview : undefined}

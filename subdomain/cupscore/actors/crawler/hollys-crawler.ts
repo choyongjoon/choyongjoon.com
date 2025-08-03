@@ -138,7 +138,6 @@ async function extractCategoriesFromMenu(
     const categories: Array<{ name: string; url: string }> = [];
 
     for (const element of categoryElements) {
-      // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing needed for category extraction
       const [text, href] = await Promise.all([
         element.textContent(),
         element.getAttribute('href'),
@@ -194,7 +193,6 @@ async function extractProductUrls(
     const productUrls: string[] = [];
     for (const link of productLinks) {
       try {
-        // biome-ignore lint/nursery/noAwaitInLoop: Need to extract URLs sequentially
         const href = await link.getAttribute('href');
         if (href) {
           const productUrl = href.startsWith('http')
@@ -420,7 +418,6 @@ async function handleMainMenuPage(
           `🔖 Processing category ${i + 1}/${categoriesToProcess.length}: ${category.name} -> ${category.url}`
         );
 
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential category processing needed
         logger.info(`🌐 Navigating to: ${category.url}`);
         await page.goto(category.url, {
           waitUntil: 'domcontentloaded',
@@ -448,7 +445,6 @@ async function handleMainMenuPage(
           logger.info(
             `⏳ Waiting 3 seconds before processing next category (${categoriesToProcess[i + 1].name})...`
           );
-          // biome-ignore lint/nursery/noAwaitInLoop: Intentional delay between categories
           await new Promise((resolve) => setTimeout(resolve, 3000));
           logger.info(
             `🔄 Starting next category: ${categoriesToProcess[i + 1].name}`

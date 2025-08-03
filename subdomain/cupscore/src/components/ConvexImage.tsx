@@ -89,8 +89,6 @@ export function ConvexImage({
   }
 
   return (
-    // biome-ignore lint/nursery/noNoninteractiveElementInteractions: Image error handling required for fallback functionality
-    // biome-ignore lint/performance/noImgElement: Standard img element appropriate for this use case without Next.js optimization requirements
     <img
       alt={alt}
       className={className}

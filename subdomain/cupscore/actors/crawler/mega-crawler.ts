@@ -115,7 +115,9 @@ async function extractProductData(
         .first()
         .getAttribute('src')
         .then((src) => {
-          if (!src) return '';
+          if (!src) {
+            return '';
+          }
           return src.startsWith('/') ? `${SITE_CONFIG.baseUrl}${src}` : src;
         })
         .catch(() => ''),

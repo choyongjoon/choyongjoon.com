@@ -84,6 +84,7 @@ export function ReviewCard({
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
+                  <title>Menu options</title>
                   <path
                     d="M12 5v.01M12 12v.01M12 19v.01"
                     strokeLinecap="round"
@@ -92,10 +93,7 @@ export function ReviewCard({
                   />
                 </svg>
               </button>
-              <ul
-                className="dropdown-content menu z-[1] w-32 rounded-box bg-base-100 p-2 shadow"
-                tabIndex={0}
-              >
+              <ul className="dropdown-content menu z-[1] w-32 rounded-box bg-base-100 p-2 shadow">
                 {onEdit && (
                   <li>
                     <button onClick={onEdit} type="button">
@@ -135,23 +133,28 @@ export function ReviewCard({
               {review.imageUrls.map((imageUrl, index) => (
                 <div
                   className="aspect-square overflow-hidden rounded-lg"
-                  key={index}
+                  key={imageUrl}
                 >
-                  <img
-                    alt={`리뷰 사진 ${index + 1}`}
-                    className="h-full w-full cursor-pointer object-cover transition-transform hover:scale-105"
+                  <button
+                    className="h-full w-full cursor-pointer transition-transform hover:scale-105"
                     onClick={() => {
                       // Open modal for full-size image view
                       const modal = document.getElementById(
-                        `image-modal-${index}`
+                        `image-modal-${imageUrl}`
                       ) as HTMLDialogElement;
                       modal?.showModal();
                     }}
-                    src={imageUrl}
-                  />
+                    type="button"
+                  >
+                    <img
+                      alt={`Review attachment ${index + 1}`}
+                      className="h-full w-full object-cover"
+                      src={imageUrl}
+                    />
+                  </button>
 
                   {/* Full-size image modal */}
-                  <dialog className="modal" id={`image-modal-${index}`}>
+                  <dialog className="modal" id={`image-modal-${imageUrl}`}>
                     <div className="modal-box w-auto max-w-none p-0">
                       <img
                         alt={`리뷰 사진 ${index + 1}`}
@@ -174,7 +177,7 @@ export function ReviewCard({
           {wasEdited ? (
             <>{updatedDate.toLocaleDateString('ko-KR')} 수정</>
           ) : (
-            <>{createdDate.toLocaleDateString('ko-KR')}</>
+            createdDate.toLocaleDateString('ko-KR')
           )}
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useUser } from '@clerk/tanstack-react-start';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Id } from 'convex/_generated/dataModel';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../../convex/_generated/api';
 import { RatingButtonGroup } from './RatingButtonGroup';
 
@@ -23,6 +23,7 @@ export function ReviewForm({
   const [text, setText] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [imageStorageIds, setImageStorageIds] = useState<Id<'_storage'>[]>([]);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   // Check if user already has a review for this product
@@ -35,20 +36,38 @@ export function ReviewForm({
   });
 
   // Initialize form with existing review data
-  useState(() => {
+  useEffect(() => {
     if (existingReview) {
       setRating(existingReview.rating);
       setText(existingReview.text || '');
       setImageStorageIds(existingReview.imageStorageIds || []);
+      // We'll get image URLs from the review query that includes imageUrls
+      setExistingImageUrls(existingReview.imageUrls || []);
     }
+  }, [existingReview]);
+
+  const generateUploadUrlMutation = useMutation({
+    mutationFn: useConvexMutation(api.reviews.generateUploadUrl),
   });
 
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File): Promise<Id<'_storage'>> => {
-      // This is a simplified approach - in production you'd want proper error handling
-      throw new Error(
-        'Image upload not yet implemented - for now, reviews without images only'
-      );
+      // Get upload URL from Convex
+      const uploadUrl = await generateUploadUrlMutation.mutateAsync({});
+
+      // Upload file to Convex storage
+      const result = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+
+      if (!result.ok) {
+        throw new Error(`Failed to upload image: ${result.status}`);
+      }
+
+      const { storageId } = await result.json();
+      return storageId as Id<'_storage'>;
     },
   });
 
@@ -62,16 +81,21 @@ export function ReviewForm({
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length + images.length > 2) {
+    const totalImages = existingImageUrls.length + images.length;
+    if (files.length + totalImages > 2) {
       alert('최대 2장까지 업로드할 수 있습니다.');
       return;
     }
     setImages([...images, ...files]);
   };
 
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+  const removeExistingImage = (index: number) => {
+    setExistingImageUrls(existingImageUrls.filter((_, i) => i !== index));
     setImageStorageIds(imageStorageIds.filter((_, i) => i !== index));
+  };
+
+  const removeNewImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,16 +115,23 @@ export function ReviewForm({
 
     try {
       // Upload new images
-      const newStorageIds: Id<'_storage'>[] = [];
-      for (const file of images) {
-        if (file instanceof File) {
-          const storageId = await uploadImageMutation.mutateAsync(file);
-          newStorageIds.push(storageId);
-        }
-      }
+      const newStorageIds = await Promise.all(
+        images
+          .filter((file): file is File => file instanceof File)
+          .map((file) => uploadImageMutation.mutateAsync(file))
+      );
 
-      // Combine existing and new image storage IDs
-      const allImageStorageIds = [...imageStorageIds, ...newStorageIds];
+      // Get storage IDs for remaining existing images (ones not removed)
+      const remainingExistingStorageIds = imageStorageIds.slice(
+        0,
+        existingImageUrls.length
+      );
+
+      // Combine remaining existing images and new image storage IDs
+      const allImageStorageIds = [
+        ...remainingExistingStorageIds,
+        ...newStorageIds,
+      ];
 
       // Submit review
       await submitReviewMutation.mutateAsync({
@@ -111,8 +142,7 @@ export function ReviewForm({
         imageStorageIds:
           allImageStorageIds.length > 0 ? allImageStorageIds : undefined,
       });
-    } catch (error) {
-      console.error('Failed to submit review:', error);
+    } catch {
       alert('리뷰 등록에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsUploading(false);
@@ -132,6 +162,7 @@ export function ReviewForm({
   }
 
   const isSubmitting =
+    generateUploadUrlMutation.isPending ||
     uploadImageMutation.isPending ||
     submitReviewMutation.isPending ||
     isUploading;
@@ -181,19 +212,21 @@ export function ReviewForm({
             </label>
 
             {/* Image Preview */}
-            {(images.length > 0 || imageStorageIds.length > 0) && (
+            {(existingImageUrls.length > 0 || images.length > 0) && (
               <div className="mb-2 grid grid-cols-2 gap-2">
                 {/* Existing images from storage */}
-                {imageStorageIds.map((_, index) => (
-                  <div className="relative" key={`existing-${index}`}>
-                    <div className="flex aspect-square items-center justify-center rounded-lg bg-base-200">
-                      <span className="text-base-content/60 text-xs">
-                        기존 이미지
-                      </span>
+                {existingImageUrls.map((imageUrl, index) => (
+                  <div className="relative" key={`existing-${imageUrl}`}>
+                    <div className="aspect-square overflow-hidden rounded-lg">
+                      <img
+                        alt={`Review attachment ${index + 1}`}
+                        className="h-full w-full object-cover"
+                        src={imageUrl}
+                      />
                     </div>
                     <button
                       className="-top-2 -right-2 btn btn-circle btn-xs btn-error absolute"
-                      onClick={() => removeImage(index)}
+                      onClick={() => removeExistingImage(index)}
                       type="button"
                     >
                       ×
@@ -203,19 +236,20 @@ export function ReviewForm({
 
                 {/* New image previews */}
                 {images.map((file, index) => (
-                  <div className="relative" key={`new-${index}`}>
+                  <div
+                    className="relative"
+                    key={`new-${file.name}-${file.size}`}
+                  >
                     <div className="aspect-square overflow-hidden rounded-lg">
                       <img
-                        alt={`Preview ${index + 1}`}
+                        alt={`Upload preview ${index + 1}`}
                         className="h-full w-full object-cover"
                         src={URL.createObjectURL(file)}
                       />
                     </div>
                     <button
                       className="-top-2 -right-2 btn btn-circle btn-xs btn-error absolute"
-                      onClick={() =>
-                        removeImage(imageStorageIds.length + index)
-                      }
+                      onClick={() => removeNewImage(index)}
                       type="button"
                     >
                       ×
@@ -226,7 +260,7 @@ export function ReviewForm({
             )}
 
             {/* Upload Button */}
-            {images.length + imageStorageIds.length < 2 && (
+            {existingImageUrls.length + images.length < 2 && (
               <input
                 accept="image/*"
                 className="file-input file-input-bordered"

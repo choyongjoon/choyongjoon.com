@@ -368,7 +368,6 @@ async function processCafeProducts(
   logger.info(`📦 Found ${products.length} products`);
 
   for (const product of products) {
-    // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing required for interactive mode
     await processProduct(product, options, stats);
   }
 }
@@ -447,7 +446,6 @@ async function categorizeProducts(
         : (Object.keys(AVAILABLE_CAFES) as CafeSlug[]);
 
     for (const cafeSlug of cafesToProcess) {
-      // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing required for database consistency
       await processCafeProducts(cafeSlug, options, stats);
     }
   } catch (error) {

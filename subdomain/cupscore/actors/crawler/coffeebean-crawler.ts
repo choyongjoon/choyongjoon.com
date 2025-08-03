@@ -80,7 +80,6 @@ async function extractCategoriesFromMenu(
     const categories: Array<{ name: string; url: string }> = [];
 
     for (const element of categoryElements) {
-      // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing needed for category extraction
       const [text, href] = await Promise.all([
         element.textContent(),
         element.getAttribute('href'),
@@ -152,7 +151,6 @@ async function extractProductsFromListing(
         // Look for next page link or numeric page links
         let nextPageFound = false;
         for (const link of paginationLinks) {
-          // biome-ignore lint/nursery/noAwaitInLoop: Sequential pagination check needed
           const linkText = await link.textContent();
           const href = await link.getAttribute('href');
 
@@ -164,7 +162,6 @@ async function extractProductsFromListing(
           ) {
             logger.info(`🔗 Found next page link: ${linkText?.trim()}`);
 
-            // biome-ignore lint/nursery/noAwaitInLoop: Sequential page navigation needed
             await link.click();
             await waitForLoad(page);
 
@@ -258,7 +255,6 @@ async function extractProductsFromCurrentPage(
         batchStart + batchSize
       );
 
-      // biome-ignore lint/nursery/noAwaitInLoop: Controlled batching needed for performance
       const batchResults = await Promise.all(
         batch.map(async (container, index) => {
           try {
@@ -390,7 +386,6 @@ async function handleMainMenuPage(
           `🔖 Processing category: ${category.name} -> ${category.url}`
         );
 
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential category processing needed
         await page.goto(category.url);
         await waitForLoad(page);
 
@@ -437,7 +432,6 @@ async function processProducts(
   const batchSize = 10;
   for (let i = 0; i < createdProducts.length; i += batchSize) {
     const batch = createdProducts.slice(i, i + batchSize);
-    // biome-ignore lint/nursery/noAwaitInLoop: Controlled batching to avoid blocking
     await Promise.all(
       batch.map((product) => crawlerInstance.pushData(product))
     );

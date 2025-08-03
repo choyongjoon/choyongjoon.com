@@ -65,7 +65,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
       <html lang="ko">
-        {/** biome-ignore lint/style/noHeadElement: this project is using tanstack start */}
         <head>
           <HeadContent />
         </head>

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.1.2/schema.json",
+  "extends": ["ultracite"],
+  "files": {
+    "includes": ["**", "!**/_generated/**", "!**/routeTree.gen.ts"]
+  },
+  "linter": {
+    "rules": {
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "warn"
+      },
+      "correctness": {
+        "noUnknownProperty": "warn"
+      },
+      "performance": {
+        "noImgElement": "off"
+      },
+      "nursery": {
+        "noAwaitInLoop": "warn",
+        "noUnknownAtRule": "warn",
+        "noNoninteractiveElementInteractions": "off"
+      },
+      "style": {
+        "noHeadElement": "off",
+        "useFilenamingConvention": {
+          "options": {
+            "filenameCases": ["camelCase", "PascalCase", "kebab-case"]
+          }
+        }
+      }
+    }
+  }
+}

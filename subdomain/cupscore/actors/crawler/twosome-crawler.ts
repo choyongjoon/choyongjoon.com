@@ -88,7 +88,6 @@ async function extractCategoriesFromMenu(
     const categories: Array<{ name: string; element: Locator }> = [];
 
     for (const element of categoryElements) {
-      // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing needed for category extraction
       const text = await element.textContent();
       if (
         text?.trim() &&
@@ -161,7 +160,6 @@ async function extractProductsFromListing(
         batchStart + batchSize
       );
 
-      // biome-ignore lint/nursery/noAwaitInLoop: Controlled batching needed for performance
       const batchResults = await Promise.all(
         batch.map(async (container, index) => {
           try {
@@ -284,7 +282,6 @@ async function handleMainMenuPage(
   // Process each category
   for (const category of categoriesToProcess) {
     try {
-      // biome-ignore lint/nursery/noAwaitInLoop: Sequential category processing needed
       await category.element.click();
       await waitForLoad(page);
 
@@ -299,7 +296,6 @@ async function handleMainMenuPage(
       const batchSize = 10;
       for (let i = 0; i < createdProducts.length; i += batchSize) {
         const batch = createdProducts.slice(i, i + batchSize);
-        // biome-ignore lint/nursery/noAwaitInLoop: Controlled batching to avoid blocking
         await Promise.all(
           batch.map((product) => crawlerInstance.pushData(product))
         );

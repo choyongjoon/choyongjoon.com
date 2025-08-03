@@ -302,7 +302,6 @@ async function main(): Promise<void> {
     // Run crawler tests sequentially to avoid resource conflicts
     for (const crawlerName of crawlersToTest) {
       try {
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential testing required
         const result = await runCrawlerTest(crawlerName);
         results.push(result);
       } catch (error) {

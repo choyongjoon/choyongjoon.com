@@ -285,7 +285,6 @@ export const bulkUpsertProducts = mutation({
 
     for (const product of products) {
       try {
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing required for database consistency
         const result = await ctx.runMutation(
           api.products.upsertProduct,
           product
@@ -464,7 +463,6 @@ export const markProductsAsRemoved = mutation({
     for (const product of allProducts) {
       if (!currentExternalIds.includes(product.externalId)) {
         // Mark as removed
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential product status updates required
         await ctx.db.patch(product._id, {
           isActive: false,
           removedAt: now,
@@ -484,7 +482,6 @@ export const markProductsAsRemoved = mutation({
     for (const product of previouslyRemovedProducts) {
       if (currentExternalIds.includes(product.externalId)) {
         // Reactivate the product
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential product reactivation required
         await ctx.db.patch(product._id, {
           isActive: true,
           removedAt: undefined,
@@ -550,7 +547,6 @@ export const activateAllProducts = mutation({
         // Check if product needs activation
         if (product.isActive === false || product.isActive === undefined) {
           // Activate the product
-          // biome-ignore lint/nursery/noAwaitInLoop: Sequential product activation required
           await ctx.db.patch(product._id, {
             isActive: true,
             updatedAt: now,

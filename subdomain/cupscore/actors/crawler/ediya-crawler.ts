@@ -88,7 +88,6 @@ async function extractCategoryValues(
     const categories: Array<{ value: string; name: string }> = [];
 
     for (const checkbox of checkboxes) {
-      // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing needed for category extraction
       const [value, label] = await Promise.all([
         checkbox.getAttribute('value'),
         checkbox.evaluate((el) => {
@@ -241,7 +240,6 @@ async function extractProductsFromPage(
       try {
         const container = containersToProcess[i];
 
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential product processing needed
         const productData = await extractProductData(container);
 
         if (productData) {

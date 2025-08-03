@@ -203,7 +203,6 @@ async function main() {
     // Upload cafes sequentially to avoid database conflicts
     for (const cafeSlug of cafeSlugs) {
       try {
-        // biome-ignore lint/nursery/noAwaitInLoop: Sequential processing is intentional for database uploads
         await uploadCafe(cafeSlug, options);
         successCount++;
       } catch (error) {
