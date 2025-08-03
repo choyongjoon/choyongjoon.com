@@ -8,19 +8,23 @@ import { mutation, query } from './_generated/server';
  */
 export const RATING_LABELS = {
   1: '최악',
-  2: '별로', 
+  2: '별로',
   3: '보통',
   3.5: '좋음',
   4: '추천',
   4.5: '강력 추천',
-  5: '최고'
+  5: '최고',
 } as const;
+
+export type RatingDistribution = {
+  [key in 1 | 2 | 3 | 3.5 | 4 | 4.5 | 5]: number;
+};
 
 /**
  * Get all reviews for a product
  */
 export const getByProduct = query({
-  args: { 
+  args: {
     productId: v.id('products'),
     limit: v.optional(v.number()),
   },
@@ -39,15 +43,16 @@ export const getByProduct = query({
         if (review.imageStorageIds) {
           imageUrls = await Promise.all(
             review.imageStorageIds.map(async (storageId) => {
-              return await ctx.storage.getUrl(storageId) || '';
+              return (await ctx.storage.getUrl(storageId)) || '';
             })
           );
         }
-        
+
         return {
           ...review,
           imageUrls,
-          ratingLabel: RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
+          ratingLabel:
+            RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
         };
       })
     );
@@ -80,13 +85,21 @@ export const getProductStats = query({
     const averageRating = Number((totalRating / reviews.length).toFixed(1));
 
     // Count distribution of ratings
-    const ratingDistribution = { 1: 0, 2: 0, 3: 0, 3.5: 0, 4: 0, 4.5: 0, 5: 0 };
-    reviews.forEach((review) => {
+    const ratingDistribution: RatingDistribution = {
+      1: 0,
+      2: 0,
+      3: 0,
+      3.5: 0,
+      4: 0,
+      4.5: 0,
+      5: 0,
+    };
+    for (const review of reviews) {
       const rating = review.rating as keyof typeof ratingDistribution;
       if (rating in ratingDistribution) {
         ratingDistribution[rating]++;
       }
-    });
+    }
 
     return {
       averageRating,
@@ -100,7 +113,7 @@ export const getProductStats = query({
  * Check if user has already reviewed a product
  */
 export const getUserReview = query({
-  args: { 
+  args: {
     productId: v.id('products'),
     userId: v.string(),
   },
@@ -120,7 +133,7 @@ export const getUserReview = query({
     if (review.imageStorageIds) {
       imageUrls = await Promise.all(
         review.imageStorageIds.map(async (storageId) => {
-          return await ctx.storage.getUrl(storageId) || '';
+          return (await ctx.storage.getUrl(storageId)) || '';
         })
       );
     }
@@ -128,7 +141,8 @@ export const getUserReview = query({
     return {
       ...review,
       imageUrls,
-      ratingLabel: RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
+      ratingLabel:
+        RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
     };
   },
 });
@@ -152,7 +166,9 @@ export const upsertReview = mutation({
     // Validate rating
     const validRatings = [1, 2, 3, 3.5, 4, 4.5, 5];
     if (!validRatings.includes(args.rating)) {
-      throw new Error('Invalid rating. Must be one of: 1, 2, 3, 3.5, 4, 4.5, 5');
+      throw new Error(
+        'Invalid rating. Must be one of: 1, 2, 3, 3.5, 4, 4.5, 5'
+      );
     }
 
     // Validate image count (max 2)
@@ -216,7 +232,7 @@ export const deleteReview = mutation({
   },
   handler: async (ctx, { reviewId, userId }) => {
     const review = await ctx.db.get(reviewId);
-    
+
     if (!review) {
       throw new Error('Review not found');
     }
@@ -252,7 +268,10 @@ export const updateProductStats = mutation({
     let averageRating = 0;
 
     if (totalReviews > 0) {
-      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      const totalRating = reviews.reduce(
+        (sum, review) => sum + review.rating,
+        0
+      );
       averageRating = Number((totalRating / totalReviews).toFixed(1));
     }
 
@@ -292,12 +311,12 @@ export const getRecentReviews = query({
     const reviewsWithProducts = await Promise.all(
       reviews.map(async (review) => {
         const product = await ctx.db.get(review.productId);
-        
+
         let imageUrls: string[] = [];
         if (review.imageStorageIds) {
           imageUrls = await Promise.all(
             review.imageStorageIds.map(async (storageId) => {
-              return await ctx.storage.getUrl(storageId) || '';
+              return (await ctx.storage.getUrl(storageId)) || '';
             })
           );
         }
@@ -306,7 +325,8 @@ export const getRecentReviews = query({
           ...review,
           product,
           imageUrls,
-          ratingLabel: RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
+          ratingLabel:
+            RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
         };
       })
     );

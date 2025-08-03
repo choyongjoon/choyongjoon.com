@@ -1,10 +1,10 @@
 import { useUser } from '@clerk/tanstack-react-start';
-import { convexQuery } from '@convex-dev/react-query';
+import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 import type { Id } from 'convex/_generated/dataModel';
+import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
-import { RatingStars } from './RatingStars';
+import { RatingButtonGroup } from './RatingButtonGroup';
 
 interface ReviewFormProps {
   productId: Id<'products'>;
@@ -12,7 +12,11 @@ interface ReviewFormProps {
   onCancel?: () => void;
 }
 
-export function ReviewForm({ productId, onSuccess, onCancel }: ReviewFormProps) {
+export function ReviewForm({
+  productId,
+  onSuccess,
+  onCancel,
+}: ReviewFormProps) {
   const { user } = useUser();
   const queryClient = useQueryClient();
   const [rating, setRating] = useState<number>(0);
@@ -42,21 +46,14 @@ export function ReviewForm({ productId, onSuccess, onCancel }: ReviewFormProps) 
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File): Promise<Id<'_storage'>> => {
       // This is a simplified approach - in production you'd want proper error handling
-      throw new Error('Image upload not yet implemented - for now, reviews without images only');
+      throw new Error(
+        'Image upload not yet implemented - for now, reviews without images only'
+      );
     },
   });
 
   const submitReviewMutation = useMutation({
-    mutationFn: async (data: {
-      rating: number;
-      text?: string;
-      imageStorageIds?: Id<'_storage'>[];
-    }) => {
-      // This would need to be implemented with proper Convex client integration
-      // For now, we'll simulate the API call
-      console.log('Submitting review:', data);
-      return { success: true };
-    },
+    mutationFn: useConvexMutation(api.reviews.upsertReview),
     onSuccess: () => {
       queryClient.invalidateQueries();
       onSuccess?.();
@@ -79,7 +76,7 @@ export function ReviewForm({ productId, onSuccess, onCancel }: ReviewFormProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       alert('리뷰를 작성하려면 로그인이 필요합니다.');
       return;
@@ -91,7 +88,7 @@ export function ReviewForm({ productId, onSuccess, onCancel }: ReviewFormProps) 
     }
 
     setIsUploading(true);
-    
+
     try {
       // Upload new images
       const newStorageIds: Id<'_storage'>[] = [];
@@ -107,9 +104,12 @@ export function ReviewForm({ productId, onSuccess, onCancel }: ReviewFormProps) 
 
       // Submit review
       await submitReviewMutation.mutateAsync({
+        productId,
+        userId: user.id,
         rating,
         text: text.trim() || undefined,
-        imageStorageIds: allImageStorageIds.length > 0 ? allImageStorageIds : undefined,
+        imageStorageIds:
+          allImageStorageIds.length > 0 ? allImageStorageIds : undefined,
       });
     } catch (error) {
       console.error('Failed to submit review:', error);
@@ -123,13 +123,18 @@ export function ReviewForm({ productId, onSuccess, onCancel }: ReviewFormProps) 
     return (
       <div className="card bg-base-100 shadow-md">
         <div className="card-body text-center">
-          <p className="text-base-content/70">리뷰를 작성하려면 로그인이 필요합니다.</p>
+          <p className="text-base-content/70">
+            리뷰를 작성하려면 로그인이 필요합니다.
+          </p>
         </div>
       </div>
     );
   }
 
-  const isSubmitting = uploadImageMutation.isPending || submitReviewMutation.isPending || isUploading;
+  const isSubmitting =
+    uploadImageMutation.isPending ||
+    submitReviewMutation.isPending ||
+    isUploading;
 
   return (
     <div className="card bg-base-100 shadow-md">
@@ -137,83 +142,81 @@ export function ReviewForm({ productId, onSuccess, onCancel }: ReviewFormProps) 
         <h3 className="card-title">
           {existingReview ? '리뷰 수정' : '리뷰 작성'}
         </h3>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
           {/* Rating Selection */}
           <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">별점 *</span>
+            <label className="label block" htmlFor="review-rating">
+              <span className="label-text font-medium">평점 *</span>
             </label>
-            <div className="flex items-center gap-4">
-              <RatingStars 
-                rating={rating} 
-                onRatingChange={setRating}
-                size="lg"
-                showLabel
-              />
-            </div>
+
+            <RatingButtonGroup onRatingChange={setRating} rating={rating} />
           </div>
 
           {/* Review Text */}
           <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">리뷰 내용</span>
-              <span className="label-text-alt text-base-content/60">선택사항</span>
+            <label className="label block" htmlFor="review-text">
+              <span className="label-text font-medium">내용</span>
             </label>
             <textarea
               className="textarea textarea-bordered h-24 resize-none"
-              placeholder="이 음료에 대한 솔직한 후기를 남겨주세요..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
+              id="review-text"
               maxLength={500}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="이 음료에 대한 솔직한 후기를 남겨주세요."
+              value={text}
             />
-            <label className="label">
-              <span className="label-text-alt text-base-content/60">
-                {text.length}/500
-              </span>
-            </label>
+            <div className="label-text-alt text-base-content/60">
+              {text.length}/500
+            </div>
           </div>
 
           {/* Photo Upload */}
           <div className="form-control">
-            <label className="label">
+            <label className="label block" htmlFor="review-images">
               <span className="label-text font-medium">사진</span>
-              <span className="label-text-alt text-base-content/60">최대 2장</span>
+              <span className="label-text-alt ml-2 text-base-content/60">
+                최대 2장
+              </span>
             </label>
-            
+
             {/* Image Preview */}
             {(images.length > 0 || imageStorageIds.length > 0) && (
-              <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className="mb-2 grid grid-cols-2 gap-2">
                 {/* Existing images from storage */}
                 {imageStorageIds.map((_, index) => (
-                  <div key={`existing-${index}`} className="relative">
-                    <div className="aspect-square rounded-lg bg-base-200 flex items-center justify-center">
-                      <span className="text-xs text-base-content/60">기존 이미지</span>
+                  <div className="relative" key={`existing-${index}`}>
+                    <div className="flex aspect-square items-center justify-center rounded-lg bg-base-200">
+                      <span className="text-base-content/60 text-xs">
+                        기존 이미지
+                      </span>
                     </div>
                     <button
-                      type="button"
-                      className="absolute -top-2 -right-2 btn btn-circle btn-xs btn-error"
+                      className="-top-2 -right-2 btn btn-circle btn-xs btn-error absolute"
                       onClick={() => removeImage(index)}
+                      type="button"
                     >
                       ×
                     </button>
                   </div>
                 ))}
-                
+
                 {/* New image previews */}
                 {images.map((file, index) => (
-                  <div key={`new-${index}`} className="relative">
-                    <div className="aspect-square rounded-lg overflow-hidden">
+                  <div className="relative" key={`new-${index}`}>
+                    <div className="aspect-square overflow-hidden rounded-lg">
                       <img
-                        src={URL.createObjectURL(file)}
                         alt={`Preview ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        className="h-full w-full object-cover"
+                        src={URL.createObjectURL(file)}
                       />
                     </div>
                     <button
+                      className="-top-2 -right-2 btn btn-circle btn-xs btn-error absolute"
+                      onClick={() =>
+                        removeImage(imageStorageIds.length + index)
+                      }
                       type="button"
-                      className="absolute -top-2 -right-2 btn btn-circle btn-xs btn-error"
-                      onClick={() => removeImage(imageStorageIds.length + index)}
                     >
                       ×
                     </button>
@@ -225,11 +228,11 @@ export function ReviewForm({ productId, onSuccess, onCancel }: ReviewFormProps) 
             {/* Upload Button */}
             {images.length + imageStorageIds.length < 2 && (
               <input
-                type="file"
                 accept="image/*"
-                multiple
                 className="file-input file-input-bordered"
+                multiple
                 onChange={handleImageChange}
+                type="file"
               />
             )}
           </div>
@@ -238,20 +241,22 @@ export function ReviewForm({ productId, onSuccess, onCancel }: ReviewFormProps) 
           <div className="card-actions justify-end">
             {onCancel && (
               <button
-                type="button"
                 className="btn btn-ghost"
-                onClick={onCancel}
                 disabled={isSubmitting}
+                onClick={onCancel}
+                type="button"
               >
                 취소
               </button>
             )}
             <button
-              type="submit"
               className="btn btn-primary"
               disabled={isSubmitting || rating === 0}
+              type="submit"
             >
-              {isSubmitting && <span className="loading loading-spinner loading-sm" />}
+              {isSubmitting && (
+                <span className="loading loading-spinner loading-sm" />
+              )}
               {existingReview ? '수정하기' : '등록하기'}
             </button>
           </div>

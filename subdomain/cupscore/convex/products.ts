@@ -142,7 +142,7 @@ export const getProductSuggestions = query({
         id: p._id,
         name: p.name,
         nameEn: p.nameEn,
-        category: p.category,
+        shortId: p.shortId,
       }))
       .slice(0, limit);
 

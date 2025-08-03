@@ -1,5 +1,4 @@
 import type { Id } from 'convex/_generated/dataModel';
-import { RatingStars } from './RatingStars';
 
 interface ReviewCardProps {
   review: {
@@ -19,29 +18,34 @@ interface ReviewCardProps {
   onDelete?: () => void;
 }
 
-export function ReviewCard({ review, currentUserId, onEdit, onDelete }: ReviewCardProps) {
+export function ReviewCard({
+  review,
+  currentUserId,
+  onEdit,
+  onDelete,
+}: ReviewCardProps) {
   const isOwner = currentUserId === review.userId;
   const createdDate = new Date(review.createdAt);
   const updatedDate = new Date(review.updatedAt);
   const wasEdited = review.updatedAt > review.createdAt;
 
   return (
-    <div className="card bg-base-100 shadow-sm border border-base-300">
+    <div className="card border border-base-300 bg-base-100 shadow-sm">
       <div className="card-body p-4">
         {/* User Info and Rating */}
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             {/* User Avatar */}
             <div className="avatar">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                 {review.userImageUrl ? (
-                  <img 
-                    src={review.userImageUrl} 
+                  <img
                     alt={review.userName || '사용자'}
-                    className="w-full h-full rounded-full object-cover"
+                    className="h-full w-full rounded-full object-cover"
+                    src={review.userImageUrl}
                   />
                 ) : (
-                  <span className="text-primary font-medium text-sm">
+                  <span className="font-medium text-primary text-sm">
                     {(review.userName || '익명')[0]}
                   </span>
                 )}
@@ -50,17 +54,16 @@ export function ReviewCard({ review, currentUserId, onEdit, onDelete }: ReviewCa
 
             {/* User Name and Rating */}
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="mb-1 flex items-center gap-2">
                 <span className="font-medium text-sm">
                   {review.userName || '익명 사용자'}
                 </span>
                 {wasEdited && (
-                  <span className="text-xs text-base-content/50">(수정됨)</span>
+                  <span className="text-base-content/50 text-xs">(수정됨)</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <RatingStars rating={review.rating} readonly size="sm" />
-                <span className="text-sm font-medium text-primary">
+                <span className="font-medium text-primary text-sm">
                   {review.ratingLabel}
                 </span>
               </div>
@@ -70,27 +73,27 @@ export function ReviewCard({ review, currentUserId, onEdit, onDelete }: ReviewCa
           {/* Action Menu */}
           {isOwner && (
             <div className="dropdown dropdown-end">
-              <button 
+              <button
                 className="btn btn-ghost btn-circle btn-xs"
-                type="button"
                 tabIndex={0}
+                type="button"
               >
-                <svg 
-                  className="w-4 h-4" 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth="2" 
-                    d="M12 5v.01M12 12v.01M12 19v.01" 
+                  <path
+                    d="M12 5v.01M12 12v.01M12 19v.01"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                   />
                 </svg>
               </button>
-              <ul 
-                className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32"
+              <ul
+                className="dropdown-content menu z-[1] w-32 rounded-box bg-base-100 p-2 shadow"
                 tabIndex={0}
               >
                 {onEdit && (
@@ -102,7 +105,11 @@ export function ReviewCard({ review, currentUserId, onEdit, onDelete }: ReviewCa
                 )}
                 {onDelete && (
                   <li>
-                    <button onClick={onDelete} className="text-error" type="button">
+                    <button
+                      className="text-error"
+                      onClick={onDelete}
+                      type="button"
+                    >
                       삭제
                     </button>
                   </li>
@@ -115,7 +122,7 @@ export function ReviewCard({ review, currentUserId, onEdit, onDelete }: ReviewCa
         {/* Review Text */}
         {review.text && (
           <div className="mt-3">
-            <p className="text-sm text-base-content/80 whitespace-pre-wrap">
+            <p className="whitespace-pre-wrap text-base-content/80 text-sm">
               {review.text}
             </p>
           </div>
@@ -126,28 +133,33 @@ export function ReviewCard({ review, currentUserId, onEdit, onDelete }: ReviewCa
           <div className="mt-3">
             <div className="grid grid-cols-2 gap-2">
               {review.imageUrls.map((imageUrl, index) => (
-                <div key={index} className="aspect-square rounded-lg overflow-hidden">
+                <div
+                  className="aspect-square overflow-hidden rounded-lg"
+                  key={index}
+                >
                   <img
-                    src={imageUrl}
                     alt={`리뷰 사진 ${index + 1}`}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                    className="h-full w-full cursor-pointer object-cover transition-transform hover:scale-105"
                     onClick={() => {
                       // Open modal for full-size image view
-                      const modal = document.getElementById(`image-modal-${index}`) as HTMLDialogElement;
+                      const modal = document.getElementById(
+                        `image-modal-${index}`
+                      ) as HTMLDialogElement;
                       modal?.showModal();
                     }}
+                    src={imageUrl}
                   />
-                  
+
                   {/* Full-size image modal */}
-                  <dialog id={`image-modal-${index}`} className="modal">
-                    <div className="modal-box p-0 max-w-none w-auto">
+                  <dialog className="modal" id={`image-modal-${index}`}>
+                    <div className="modal-box w-auto max-w-none p-0">
                       <img
-                        src={imageUrl}
                         alt={`리뷰 사진 ${index + 1}`}
-                        className="w-full h-auto"
+                        className="h-auto w-full"
+                        src={imageUrl}
                       />
                     </div>
-                    <form method="dialog" className="modal-backdrop">
+                    <form className="modal-backdrop" method="dialog">
                       <button type="submit">close</button>
                     </form>
                   </dialog>
@@ -158,15 +170,11 @@ export function ReviewCard({ review, currentUserId, onEdit, onDelete }: ReviewCa
         )}
 
         {/* Date */}
-        <div className="mt-3 text-xs text-base-content/50">
+        <div className="mt-3 text-base-content/50 text-xs">
           {wasEdited ? (
-            <>
-              {updatedDate.toLocaleDateString('ko-KR')} 수정
-            </>
+            <>{updatedDate.toLocaleDateString('ko-KR')} 수정</>
           ) : (
-            <>
-              {createdDate.toLocaleDateString('ko-KR')}
-            </>
+            <>{createdDate.toLocaleDateString('ko-KR')}</>
           )}
         </div>
       </div>

@@ -2,9 +2,11 @@ import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { Id } from 'convex/_generated/dataModel';
+import { RatingSummary } from '~/components/RatingSummary';
 import { api } from '../../convex/_generated/api';
 import { ConvexImage } from '../components/ConvexImage';
-import { RatingStars } from '../components/reviews/RatingStars';
+import { ExternalLinkIcon } from '../components/icons';
+import { ProductCard } from '../components/ProductCard';
 import { ReviewSection } from '../components/reviews/ReviewSection';
 
 export const Route = createFileRoute('/product/$shortId')({
@@ -32,7 +34,9 @@ function ProductPage() {
   );
 
   const { data: reviewStats } = useSuspenseQuery(
-    convexQuery(api.reviews.getProductStats, { productId: product?._id as Id<'products'> })
+    convexQuery(api.reviews.getProductStats, {
+      productId: product?._id as Id<'products'>,
+    })
   );
 
   if (!product) {
@@ -97,43 +101,20 @@ function ProductPage() {
                 </p>
               )}
 
-              {/* Cafe Link */}
-              {cafe && (
-                <div className="mb-4 flex items-center gap-2">
-                  <span className="text-base-content/60 text-sm">
-                    판매 카페:
-                  </span>
-                  <Link
-                    className="link link-primary font-medium"
-                    params={{ slug: cafe.slug }}
-                    to="/cafe/$slug"
-                  >
-                    {cafe.name}
-                  </Link>
-                </div>
-              )}
-
               {/* Category Badge */}
               {product.category && (
-                <div className="mb-4">
-                  <div className="badge badge-secondary badge-lg">
+                <div className="flex items-center gap-2">
+                  <div className="badge badge-neutral badge-lg">
                     {product.category}
+                  </div>
+                  <div className="badge badge-neutral badge-lg">
+                    {product.externalCategory}
                   </div>
                 </div>
               )}
 
               {/* Rating Display */}
-              {reviewStats && reviewStats.totalReviews > 0 && (
-                <div className="mb-4 flex items-center gap-3">
-                  <RatingStars rating={reviewStats.averageRating} readonly size="md" />
-                  <span className="font-medium text-primary">
-                    {reviewStats.averageRating.toFixed(1)}
-                  </span>
-                  <span className="text-sm text-base-content/60">
-                    ({reviewStats.totalReviews}개 리뷰)
-                  </span>
-                </div>
-              )}
+              <RatingSummary className="mt-4" reviewStats={reviewStats} />
             </div>
 
             {/* Price */}
@@ -150,69 +131,36 @@ function ProductPage() {
 
             {/* Description */}
             {product.description && (
-              <div className="card bg-base-100 shadow-md">
-                <div className="card-body">
-                  <h3 className="card-title">상품 설명</h3>
-                  <p className="whitespace-pre-wrap text-base-content/80">
-                    {product.description}
-                  </p>
-                </div>
-              </div>
+              <p className="whitespace-pre-wrap text-base-content/80">
+                {product.description}
+              </p>
             )}
 
             {/* Product Metadata */}
-            <div className="card bg-base-100 shadow-md">
-              <div className="card-body">
-                <h3 className="card-title">상품 정보</h3>
-                <div className="space-y-3">
-                  {product.externalCategory && (
-                    <div className="flex justify-between">
-                      <span className="text-base-content/60">
-                        원본 카테고리:
-                      </span>
-                      <span>{product.externalCategory}</span>
-                    </div>
-                  )}
 
-                  <div className="flex justify-between">
-                    <span className="text-base-content/60">상품 상태:</span>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`badge ${
-                          product.isActive ? 'badge-success' : 'badge-error'
-                        }`}
-                      >
-                        {product.isActive ? '판매중' : '단종'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-base-content/60">등록일:</span>
-                    <span>
-                      {new Date(product.addedAt).toLocaleDateString('ko-KR')}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-base-content/60">최종 업데이트:</span>
-                    <span>
-                      {new Date(product.updatedAt).toLocaleDateString('ko-KR')}
-                    </span>
-                  </div>
-
-                  {product.removedAt && (
-                    <div className="flex justify-between">
-                      <span className="text-base-content/60">단종일:</span>
-                      <span>
-                        {new Date(product.removedAt).toLocaleDateString(
-                          'ko-KR'
-                        )}
-                      </span>
-                    </div>
-                  )}
-                </div>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-base-content/60">등록일:</span>
+                <span>
+                  {new Date(product.addedAt).toLocaleDateString('ko-KR')}
+                </span>
               </div>
+
+              <div className="flex justify-between">
+                <span className="text-base-content/60">최종 업데이트:</span>
+                <span>
+                  {new Date(product.updatedAt).toLocaleDateString('ko-KR')}
+                </span>
+              </div>
+
+              {product.removedAt && (
+                <div className="flex justify-between">
+                  <span className="text-base-content/60">단종일:</span>
+                  <span>
+                    {new Date(product.removedAt).toLocaleDateString('ko-KR')}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* External Link */}
@@ -225,20 +173,7 @@ function ProductPage() {
                   target="_blank"
                 >
                   공식 사이트에서 보기
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <title>External Link</title>
-                    <path
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                    />
-                  </svg>
+                  <ExternalLinkIcon />
                 </a>
               </div>
             )}
@@ -296,41 +231,7 @@ function RelatedProducts({
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
       {relatedProducts.map((product) => (
-        <Link
-          className="card bg-base-100 shadow-md transition-shadow hover:shadow-lg"
-          key={product._id}
-          params={{ shortId: product.shortId || product._id }}
-          to="/product/$shortId"
-        >
-          <figure className="aspect-square">
-            <ConvexImage
-              alt={product.name}
-              className="h-full w-full object-cover"
-              fallbackImageUrl={product.externalImageUrl}
-              getImageUrl={api.products.getImageUrl}
-              imageStorageId={product.imageStorageId}
-            />
-          </figure>
-          <div className="card-body p-4">
-            <h3 className="card-title text-sm leading-tight">{product.name}</h3>
-            {product.category && (
-              <p className="text-xs text-base-content/60">{product.category}</p>
-            )}
-            {product.averageRating && product.totalReviews && product.totalReviews > 0 && (
-              <div className="flex items-center gap-1">
-                <RatingStars rating={product.averageRating} readonly size="sm" />
-                <span className="text-xs text-base-content/60">
-                  ({product.totalReviews})
-                </span>
-              </div>
-            )}
-            {product.price && (
-              <p className="text-sm font-semibold text-primary">
-                {product.price.toLocaleString()}원
-              </p>
-            )}
-          </div>
-        </Link>
+        <ProductCard key={product._id} product={product} />
       ))}
     </div>
   );

@@ -1,10 +1,11 @@
 import { convexQuery } from '@convex-dev/react-query';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import type { Id } from 'convex/_generated/dataModel';
 import { useState } from 'react';
 import { api } from '../../convex/_generated/api';
 import { ConvexImage } from '../components/ConvexImage';
+import { ProductCard } from '../components/ProductCard';
 import { getOrderedCategories } from '../utils/categories';
 
 export const Route = createFileRoute('/cafe/$slug')({
@@ -91,37 +92,7 @@ function CafePage() {
         {/* Products Grid */}
         <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
           {filteredProducts?.map((product) => (
-            <Link
-              className="card bg-base-100 shadow-md transition-shadow hover:shadow-lg"
-              key={product._id}
-              params={{ shortId: product.shortId }}
-              to="/product/$shortId"
-            >
-              <figure className="">
-                <ConvexImage
-                  alt={product.name}
-                  className="aspect-square w-full object-cover"
-                  fallbackImageUrl={product.externalImageUrl}
-                  getImageUrl={api.products.getImageUrl}
-                  imageStorageId={product.imageStorageId}
-                />
-              </figure>
-              <div className="card-body">
-                <h3 className="card-title break-keep">{product.name}</h3>
-                <p className="text-base-content/70 text-sm">
-                  {product.category}
-                </p>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    {product.price && (
-                      <p className="font-bold text-lg text-primary">
-                        {product.price.toLocaleString()}원
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Link>
+            <ProductCard key={product._id} product={product} />
           ))}
         </div>
 

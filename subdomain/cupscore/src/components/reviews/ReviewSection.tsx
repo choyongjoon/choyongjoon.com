@@ -1,12 +1,12 @@
 import { useUser } from '@clerk/tanstack-react-start';
 import { convexQuery } from '@convex-dev/react-query';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
 import type { Id } from 'convex/_generated/dataModel';
+import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
+import { ChatIcon } from '../icons';
 import { ReviewCard } from './ReviewCard';
 import { ReviewForm } from './ReviewForm';
-import { ReviewStats } from './ReviewStats';
 
 interface ReviewSectionProps {
   productId: Id<'products'>;
@@ -65,29 +65,26 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
 
   return (
     <div className="space-y-6">
-      {/* Review Statistics */}
-      {reviewStats && <ReviewStats stats={reviewStats} />}
-
       {/* Review Actions */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold">
+        <h3 className="font-bold text-xl">
           리뷰 ({reviewStats?.totalReviews || 0})
         </h3>
-        
+
         {user && !showForm && (
           <div className="flex gap-2">
             {hasUserReview ? (
               <button
-                onClick={handleEditReview}
                 className="btn btn-outline btn-sm"
+                onClick={handleEditReview}
                 type="button"
               >
                 내 리뷰 수정
               </button>
             ) : (
               <button
-                onClick={handleWriteReview}
                 className="btn btn-primary btn-sm"
+                onClick={handleWriteReview}
                 type="button"
               >
                 리뷰 작성
@@ -100,9 +97,9 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
       {/* Review Form */}
       {showForm && (
         <ReviewForm
-          productId={productId}
-          onSuccess={handleFormSuccess}
           onCancel={handleFormCancel}
+          onSuccess={handleFormSuccess}
+          productId={productId}
         />
       )}
 
@@ -111,44 +108,38 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
         <div className="space-y-4">
           {reviews.map((review) => (
             <ReviewCard
-              key={review._id}
-              review={review}
               currentUserId={user?.id}
+              key={review._id}
+              onDelete={
+                review.userId === user?.id
+                  ? () => {
+                      // TODO: Implement delete functionality
+                      console.log('Delete review:', review._id);
+                    }
+                  : undefined
+              }
               onEdit={review.userId === user?.id ? handleEditReview : undefined}
-              onDelete={review.userId === user?.id ? () => {
-                // TODO: Implement delete functionality
-                console.log('Delete review:', review._id);
-              } : undefined}
+              review={review}
             />
           ))}
         </div>
       ) : (
         !showForm && (
           <div className="card bg-base-100 shadow-sm">
-            <div className="card-body text-center py-12">
+            <div className="card-body py-12 text-center">
               <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-base-200">
-                <svg
-                  className="h-8 w-8 text-base-content/60"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
+                <ChatIcon className="text-base-content/60" />
               </div>
-              <h4 className="font-semibold text-lg mb-2">아직 리뷰가 없습니다</h4>
-              <p className="text-base-content/60 mb-4">
+              <h4 className="mb-2 font-semibold text-lg">
+                아직 리뷰가 없습니다
+              </h4>
+              <p className="mb-4 text-base-content/60">
                 이 상품에 대한 첫 번째 리뷰를 작성해보세요!
               </p>
               {user && (
                 <button
-                  onClick={handleWriteReview}
                   className="btn btn-primary"
+                  onClick={handleWriteReview}
                   type="button"
                 >
                   첫 리뷰 작성하기
