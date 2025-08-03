@@ -8,6 +8,7 @@ import {
   Scripts,
 } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
+import { PostHogProvider } from 'posthog-js/react';
 import type * as React from 'react';
 import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary';
 import { NavBar } from '~/components/NavBar';
@@ -28,9 +29,8 @@ export const Route = createRootRouteWithContext<{
         content: 'width=device-width, initial-scale=1',
       },
       ...seo({
-        title: '컵스코어 | 카페 음료 모든 것을 한곳에!',
-        description:
-          '카페 음료 모든 것을 한곳에! 인플루언서 리뷰부터 개인별 평점까지',
+        title: '잔점 | 카페 음료 모든 것을 한곳에!',
+        description: '카페 음료 모든 것을 한곳에!',
       }),
     ],
     links: [
@@ -63,18 +63,28 @@ export const Route = createRootRouteWithContext<{
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
-      <html lang="ko">
-        <head>
-          <HeadContent />
-        </head>
-        <body>
-          <NavBar />
-          {children}
-          <TanStackRouterDevtools position="bottom-right" />
-          <Scripts />
-        </body>
-      </html>
-    </ClerkProvider>
+    <PostHogProvider
+      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+      options={{
+        api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+        defaults: '2025-05-24',
+        capture_exceptions: true,
+        debug: import.meta.env.MODE === 'development',
+      }}
+    >
+      <ClerkProvider>
+        <html lang="ko">
+          <head>
+            <HeadContent />
+          </head>
+          <body>
+            <NavBar />
+            {children}
+            <TanStackRouterDevtools position="bottom-right" />
+            <Scripts />
+          </body>
+        </html>
+      </ClerkProvider>
+    </PostHogProvider>
   );
 }

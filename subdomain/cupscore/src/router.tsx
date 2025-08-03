@@ -3,6 +3,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { createRouter as createTanStackRouter } from '@tanstack/react-router';
 import { routerWithQueryClient } from '@tanstack/react-router-with-query';
 import { ConvexProvider } from 'convex/react';
+import { PostHogProvider } from 'posthog-js/react';
 import { routeTree } from './routeTree.gen';
 
 export function createRouter() {
