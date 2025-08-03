@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import type { Id } from 'convex/_generated/dataModel';
 import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
-import { ChatIcon } from '../icons';
 import { ReviewCard } from './ReviewCard';
 import { ReviewForm } from './ReviewForm';
 
@@ -127,9 +126,6 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
         !showForm && (
           <div className="card bg-base-100 shadow-sm">
             <div className="card-body py-12 text-center">
-              <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-base-200">
-                <ChatIcon className="text-base-content/60" />
-              </div>
               <h4 className="mb-2 font-semibold text-lg">
                 아직 리뷰가 없습니다
               </h4>
