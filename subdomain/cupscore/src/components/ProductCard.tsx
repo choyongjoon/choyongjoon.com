@@ -7,7 +7,11 @@ import type { Doc } from '../../convex/_generated/dataModel';
 import { ConvexImage } from '../components/ConvexImage';
 import { RatingSummary } from '../components/RatingSummary';
 
-export function ProductCard({ product }: { product: Doc<'products'> }) {
+export function ProductCard({
+  product,
+}: {
+  product: Doc<'products'> & { cafeName?: string };
+}) {
   const { data: reviewStats } = useSuspenseQuery(
     convexQuery(api.reviews.getProductStats, { productId: product._id })
   );
@@ -30,6 +34,9 @@ export function ProductCard({ product }: { product: Doc<'products'> }) {
       </figure>
       <div className="card-body overflow-hidden p-2 md:p-4">
         <h3 className="card-title break-keep">{product.name}</h3>
+        {product.cafeName && (
+          <p className="text-base-content/60 text-sm">{product.cafeName}</p>
+        )}
         <RatingSummary reviewStats={reviewStats} />
         <div className="flex items-center justify-between">
           <div className="space-y-1">
