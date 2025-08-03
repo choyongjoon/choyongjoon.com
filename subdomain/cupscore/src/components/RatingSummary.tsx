@@ -21,7 +21,7 @@ export function RatingSummary({
         {noReview ? '?' : reviewStats.averageRating.toFixed(1)}
       </span>
       <span className="text-base-content/60 text-sm">
-        ({reviewStats.totalReviews}개 리뷰)
+        ({reviewStats.totalReviews})
       </span>
     </div>
   );

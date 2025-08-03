@@ -92,7 +92,7 @@ function SearchPage() {
 
             {/* Action Buttons */}
             <div className="flex gap-2">
-              <button className="btn btn-primary" type="submit">
+              <button className="btn btn-primary btn-block" type="submit">
                 <SearchIcon size="sm" />
                 검색
               </button>
@@ -117,9 +117,6 @@ function SearchPage() {
           </div>
         ) : (
           <div className="py-16 text-center">
-            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-base-300">
-              <SearchIcon className="text-base-content/60" size="lg" />
-            </div>
             <h3 className="mb-2 font-semibold text-lg">검색 결과가 없습니다</h3>
             <p className="mb-4 text-base-content/60">
               다른 검색어를 시도해보세요.

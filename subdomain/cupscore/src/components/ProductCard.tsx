@@ -29,7 +29,7 @@ export function ProductCard({ product }: { product: Doc<'products'> }) {
         />
       </figure>
       <div className="card-body">
-        <h3 className="card-title break-keep">{product.name}</h3>
+        <h3 className="card-title truncate break-keep">{product.name}</h3>
         <RatingSummary reviewStats={reviewStats} />
         <div className="flex items-center justify-between">
           <div className="space-y-1">

@@ -20,9 +20,9 @@ export function RatingHistogram({ ratingDistribution }: RatingHistogramProps) {
   return (
     <div className="flex items-end">
       {RATING_CONFIG.map((r) => {
-        let widthClassName = 'w-3';
+        let widthClassName = 'w-2';
         if ([1, 2, 5].includes(r.value)) {
-          widthClassName = 'w-6';
+          widthClassName = 'w-4';
         }
         return (
           <div
