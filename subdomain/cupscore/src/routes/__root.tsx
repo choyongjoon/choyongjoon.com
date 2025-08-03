@@ -1,4 +1,6 @@
 /// <reference types="vite/client" />
+
+import { ClerkProvider } from '@clerk/tanstack-react-start';
 import type { QueryClient } from '@tanstack/react-query';
 import {
   createRootRouteWithContext,
@@ -67,17 +69,19 @@ export const Route = createRootRouteWithContext<{
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
-      {/** biome-ignore lint/style/noHeadElement: this project is using tanstack start */}
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <NavBar />
-        {children}
-        <TanStackRouterDevtools position="bottom-right" />
-        <Scripts />
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="ko">
+        {/** biome-ignore lint/style/noHeadElement: this project is using tanstack start */}
+        <head>
+          <HeadContent />
+        </head>
+        <body>
+          <NavBar />
+          {children}
+          <TanStackRouterDevtools position="bottom-right" />
+          <Scripts />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

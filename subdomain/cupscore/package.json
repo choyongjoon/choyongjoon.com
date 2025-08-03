@@ -14,6 +14,7 @@
     "categorize": "tsx actors/categorizer/categorize.ts"
   },
   "dependencies": {
+    "@clerk/tanstack-react-start": "^0.21.5",
     "@convex-dev/react-query": "0.0.0-alpha.11",
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/react-query": "^5.83.0",
