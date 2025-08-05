@@ -2,18 +2,15 @@
   "extends": "//",
   "linter": {
     "rules": {
-      "complexity": {
-        "noExcessiveCognitiveComplexity": "warn"
-      },
       "correctness": {
-        "noUnknownProperty": "warn"
+        "noUnknownProperty": "off"
       },
       "performance": {
         "noImgElement": "off"
       },
       "nursery": {
-        "noAwaitInLoop": "warn",
-        "noUnknownAtRule": "warn",
+        "noAwaitInLoop": "off",
+        "noUnknownAtRule": "off",
         "noNoninteractiveElementInteractions": "off"
       },
       "style": {

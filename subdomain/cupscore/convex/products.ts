@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { mutation, query } from './_generated/server';
+import { type MutationCtx, mutation, query } from './_generated/server';
 
 export const list = query({
   args: {},
@@ -150,6 +150,119 @@ export const getProductSuggestions = query({
   },
 });
 
+type UpsertProductArgs = {
+  cafeId: Id<'cafes'>;
+  name: string;
+  nameEn?: string;
+  category: string;
+  description?: string;
+  externalImageUrl?: string;
+  imageStorageId?: Id<'_storage'>;
+  externalId: string;
+  externalUrl: string;
+  price?: number;
+  downloadImages?: boolean;
+  isActive?: boolean;
+};
+
+type ExistingProduct = {
+  _id: string;
+  name: string;
+  category: string;
+  price?: number;
+  description?: string;
+  externalImageUrl?: string;
+  imageStorageId?: Id<'_storage'>;
+  isActive: boolean;
+  removedAt?: number;
+};
+
+function hasProductChanges(
+  existing: ExistingProduct,
+  args: UpsertProductArgs
+): boolean {
+  return (
+    existing.name !== args.name ||
+    existing.category !== args.category ||
+    existing.price !== args.price ||
+    existing.description !== args.description ||
+    existing.externalImageUrl !== args.externalImageUrl ||
+    existing.imageStorageId !== args.imageStorageId ||
+    existing.isActive !== (args.isActive ?? true)
+  );
+}
+
+function scheduleImageDownloadIfNeeded(
+  ctx: MutationCtx,
+  args: UpsertProductArgs,
+  productId: string,
+  shouldDownload: boolean
+): void {
+  if (shouldDownload && args.downloadImages && args.externalImageUrl) {
+    ctx.scheduler.runAfter(0, api.imageDownloader.downloadAndStoreImageAction, {
+      imageUrl: args.externalImageUrl,
+      productId,
+    });
+  }
+}
+
+async function handleExistingProduct(
+  ctx: MutationCtx,
+  args: UpsertProductArgs,
+  existing: ExistingProduct,
+  now: number
+): Promise<{ action: string; id: string }> {
+  const hasChanges = hasProductChanges(existing, args);
+
+  if (hasChanges) {
+    const updateData = {
+      ...args,
+      updatedAt: now,
+      isActive: args.isActive ?? true,
+      removedAt:
+        (args.isActive ?? true) ? undefined : (existing.removedAt ?? now),
+    };
+    // Remove downloadImages flag from stored data
+    const { downloadImages: _downloadImages, ...dataToStore } = updateData;
+
+    await ctx.db.patch(existing._id, dataToStore);
+
+    const shouldDownloadImage = !existing.imageStorageId;
+    scheduleImageDownloadIfNeeded(ctx, args, existing._id, shouldDownloadImage);
+
+    return { action: 'updated', id: existing._id };
+  }
+
+  return { action: 'unchanged', id: existing._id };
+}
+
+async function createNewProduct(
+  ctx: MutationCtx,
+  args: UpsertProductArgs,
+  now: number
+): Promise<{ action: string; id: string }> {
+  const shortId: string = await ctx.runMutation(
+    api.shortId.generateShortId,
+    {}
+  );
+
+  const insertData = {
+    ...args,
+    addedAt: now,
+    updatedAt: now,
+    isActive: args.isActive ?? true,
+    shortId,
+  };
+  // Remove downloadImages flag from stored data
+  const { downloadImages: _downloadImages, ...dataToStore } = insertData;
+
+  const id = await ctx.db.insert('products', dataToStore);
+
+  scheduleImageDownloadIfNeeded(ctx, args, id, true);
+
+  return { action: 'created', id };
+}
+
 export const upsertProduct = mutation({
   args: {
     cafeId: v.id('cafes'),
@@ -175,84 +288,10 @@ export const upsertProduct = mutation({
       .first();
 
     if (existing) {
-      // Check if any fields have changed
-      const hasChanges =
-        existing.name !== args.name ||
-        existing.category !== args.category ||
-        existing.price !== args.price ||
-        existing.description !== args.description ||
-        existing.externalImageUrl !== args.externalImageUrl ||
-        existing.imageStorageId !== args.imageStorageId ||
-        existing.isActive !== (args.isActive ?? true);
-
-      if (hasChanges) {
-        const updateData = {
-          ...args,
-          updatedAt: now,
-          isActive: args.isActive ?? true,
-          // Clear removedAt if product is being reactivated
-          removedAt:
-            (args.isActive ?? true) ? undefined : (existing.removedAt ?? now),
-        };
-        updateData.downloadImages = undefined; // Remove the flag from stored data
-
-        await ctx.db.patch(existing._id, updateData);
-
-        // Download image if requested and not already stored
-        if (
-          args.downloadImages &&
-          args.externalImageUrl &&
-          !existing.imageStorageId
-        ) {
-          // Schedule image download as a separate action (async)
-          ctx.scheduler.runAfter(
-            0,
-            api.imageDownloader.downloadAndStoreImageAction,
-            {
-              imageUrl: args.externalImageUrl,
-              productId: existing._id,
-            }
-          );
-        }
-
-        return { action: 'updated', id: existing._id };
-      }
-
-      return { action: 'unchanged', id: existing._id };
+      return await handleExistingProduct(ctx, args, existing, now);
     }
 
-    // Generate short ID for new product
-    const shortId: string = await ctx.runMutation(
-      api.shortId.generateShortId,
-      {}
-    );
-
-    // Create new product
-    const insertData = {
-      ...args,
-      addedAt: now,
-      updatedAt: now,
-      isActive: args.isActive ?? true, // Default to active for new products
-      shortId,
-    };
-    insertData.downloadImages = undefined; // Remove the flag from stored data
-
-    const id = await ctx.db.insert('products', insertData);
-
-    // Download image if requested
-    if (args.downloadImages && args.externalImageUrl) {
-      // Schedule image download as a separate action (async)
-      ctx.scheduler.runAfter(
-        0,
-        api.imageDownloader.downloadAndStoreImageAction,
-        {
-          imageUrl: args.externalImageUrl,
-          productId: id,
-        }
-      );
-    }
-
-    return { action: 'created', id };
+    return await createNewProduct(ctx, args, now);
   },
 });
 

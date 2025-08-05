@@ -158,7 +158,7 @@ class ProductUploader {
     }
   }
 
-  private printResults(result: UploadResult, verbose: boolean): void {
+  private printBasicResults(result: UploadResult): void {
     logger.info('Results:');
     logger.info(`  Processed: ${result.processed}`);
     logger.info(`  Created: ${result.created}`);
@@ -173,15 +173,21 @@ class ProductUploader {
     if (result.message) {
       logger.info(result.message);
     }
+  }
 
+  private printSampleProducts(result: UploadResult, verbose: boolean): void {
     if (verbose && result.samples) {
       logger.info('Sample processed products:');
       for (const [index, product] of result.samples.entries()) {
         logger.info(`  ${index + 1}. ${product.name} (${product.category})`);
       }
     }
+  }
 
-    // Show removed products summary and details
+  private printRemovedProductsSection(
+    result: UploadResult,
+    verbose: boolean
+  ): void {
     if (result.removed && result.removed > 0) {
       logger.info('\n❌ Removed Products Summary:');
       logger.info(`  ${result.removed} product(s) no longer found on website`);
@@ -199,8 +205,12 @@ class ProductUploader {
         logger.info('  Use --verbose to see product names');
       }
     }
+  }
 
-    // Show reactivated products summary and details
+  private printReactivatedProductsSection(
+    result: UploadResult,
+    verbose: boolean
+  ): void {
     if (result.reactivated && result.reactivated > 0) {
       logger.info('\n✅ Reactivated Products Summary:');
       logger.info(
@@ -225,8 +235,9 @@ class ProductUploader {
         logger.info('  Use --verbose to see product names');
       }
     }
+  }
 
-    // Show overall product lifecycle summary
+  private printLifecycleSummary(result: UploadResult): void {
     if (
       (result.removed && result.removed > 0) ||
       (result.reactivated && result.reactivated > 0)
@@ -239,6 +250,14 @@ class ProductUploader {
         logger.info(`  Products reactivated: ${result.reactivated}`);
       }
     }
+  }
+
+  private printResults(result: UploadResult, verbose: boolean): void {
+    this.printBasicResults(result);
+    this.printSampleProducts(result, verbose);
+    this.printRemovedProductsSection(result, verbose);
+    this.printReactivatedProductsSection(result, verbose);
+    this.printLifecycleSummary(result);
   }
 }
 

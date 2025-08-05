@@ -387,6 +387,122 @@ function createBasicProduct(
 // PAGE HANDLERS
 // ================================================
 
+async function processDiscoveredCategory(
+  page: Page,
+  category: { name: string; url: string },
+  index: number,
+  total: number,
+  crawlerInstance: PlaywrightCrawler
+): Promise<void> {
+  logger.info(
+    `🔖 Processing category ${index + 1}/${total}: ${category.name} -> ${category.url}`
+  );
+
+  logger.info(`🌐 Navigating to: ${category.url}`);
+  await page.goto(category.url, {
+    waitUntil: 'domcontentloaded',
+    timeout: 20_000,
+  });
+  await waitForLoad(page);
+  logger.info(`✅ Successfully loaded category page: ${category.name}`);
+
+  logger.info(`🔍 Starting product URL extraction for: ${category.name}`);
+  const productCount = await extractProductUrls(
+    page,
+    category.name,
+    crawlerInstance
+  );
+  logger.info(
+    `🚀 Enqueued ${productCount} products from ${category.name} for parallel processing`
+  );
+
+  logger.info(`✅ Completed category ${index + 1}/${total}: ${category.name}`);
+}
+
+async function addDelayBetweenCategories(
+  index: number,
+  total: number,
+  nextCategoryName?: string
+): Promise<void> {
+  if (index < total - 1 && nextCategoryName) {
+    logger.info(
+      `⏳ Waiting 3 seconds before processing next category (${nextCategoryName})...`
+    );
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    logger.info(`🔄 Starting next category: ${nextCategoryName}`);
+  } else if (index === total - 1) {
+    logger.info('🎉 All categories completed!');
+  }
+}
+
+async function processDiscoveredCategories(
+  page: Page,
+  categories: { name: string; url: string }[],
+  crawlerInstance: PlaywrightCrawler
+): Promise<void> {
+  const categoriesToProcess = isTestMode ? categories.slice(0, 1) : categories;
+
+  if (isTestMode) {
+    logger.info(
+      `🧪 Test mode: limiting to ${categoriesToProcess.length} categories`
+    );
+  }
+
+  for (let i = 0; i < categoriesToProcess.length; i++) {
+    const category = categoriesToProcess[i];
+    try {
+      await processDiscoveredCategory(
+        page,
+        category,
+        i,
+        categoriesToProcess.length,
+        crawlerInstance
+      );
+
+      await addDelayBetweenCategories(
+        i,
+        categoriesToProcess.length,
+        categoriesToProcess[i + 1]?.name
+      );
+    } catch (categoryError) {
+      logger.error(
+        `❌ Failed to process category ${category.name}: ${categoryError}`
+      );
+      logger.info('🔄 Continuing with next category...');
+    }
+  }
+}
+
+async function processPredefinedCategories(
+  page: Page,
+  crawlerInstance: PlaywrightCrawler
+): Promise<void> {
+  logger.info(
+    '🔖 No categories found from navigation, using predefined categories'
+  );
+
+  const categoriesToProcess = isTestMode
+    ? HOLLYS_CATEGORIES.slice(0, 1)
+    : HOLLYS_CATEGORIES;
+
+  for (const categoryName of categoriesToProcess) {
+    try {
+      logger.info(`🔖 Processing predefined category: ${categoryName}`);
+
+      const productCount = await extractProductUrls(
+        page,
+        categoryName,
+        crawlerInstance
+      );
+      logger.info(`🚀 Enqueued ${productCount} products from ${categoryName}`);
+    } catch (categoryError) {
+      logger.error(
+        `❌ Failed to process predefined category ${categoryName}: ${categoryError}`
+      );
+    }
+  }
+}
+
 async function handleMainMenuPage(
   page: Page,
   crawlerInstance: PlaywrightCrawler
@@ -396,99 +512,12 @@ async function handleMainMenuPage(
   await waitForLoad(page);
   await takeDebugScreenshot(page, 'hollys-main-menu');
 
-  // Try to extract categories from navigation
   const categories = await extractCategoriesFromMenu(page);
 
   if (categories.length > 0) {
-    // Process discovered categories
-    const categoriesToProcess = isTestMode
-      ? categories.slice(0, 1)
-      : categories;
-
-    if (isTestMode) {
-      logger.info(
-        `🧪 Test mode: limiting to ${categoriesToProcess.length} categories`
-      );
-    }
-
-    for (let i = 0; i < categoriesToProcess.length; i++) {
-      const category = categoriesToProcess[i];
-      try {
-        logger.info(
-          `🔖 Processing category ${i + 1}/${categoriesToProcess.length}: ${category.name} -> ${category.url}`
-        );
-
-        logger.info(`🌐 Navigating to: ${category.url}`);
-        await page.goto(category.url, {
-          waitUntil: 'domcontentloaded',
-          timeout: 20_000,
-        });
-        await waitForLoad(page);
-        logger.info(`✅ Successfully loaded category page: ${category.name}`);
-
-        logger.info(`🔍 Starting product URL extraction for: ${category.name}`);
-        const productCount = await extractProductUrls(
-          page,
-          category.name,
-          crawlerInstance
-        );
-        logger.info(
-          `🚀 Enqueued ${productCount} products from ${category.name} for parallel processing`
-        );
-
-        logger.info(
-          `✅ Completed category ${i + 1}/${categoriesToProcess.length}: ${category.name}`
-        );
-
-        // Add delay between categories to prevent overwhelming the server
-        if (i < categoriesToProcess.length - 1) {
-          logger.info(
-            `⏳ Waiting 3 seconds before processing next category (${categoriesToProcess[i + 1].name})...`
-          );
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-          logger.info(
-            `🔄 Starting next category: ${categoriesToProcess[i + 1].name}`
-          );
-        } else {
-          logger.info('🎉 All categories completed!');
-        }
-      } catch (categoryError) {
-        logger.error(
-          `❌ Failed to process category ${category.name}: ${categoryError}`
-        );
-        // Continue with next category instead of stopping
-        logger.info('🔄 Continuing with next category...');
-      }
-    }
+    await processDiscoveredCategories(page, categories, crawlerInstance);
   } else {
-    // Fallback: Use predefined categories and try different approaches
-    logger.info(
-      '🔖 No categories found from navigation, using predefined categories'
-    );
-
-    const categoriesToProcess = isTestMode
-      ? HOLLYS_CATEGORIES.slice(0, 1)
-      : HOLLYS_CATEGORIES;
-
-    for (const categoryName of categoriesToProcess) {
-      try {
-        logger.info(`🔖 Processing predefined category: ${categoryName}`);
-
-        // Try to extract product URLs for this category
-        const productCount = await extractProductUrls(
-          page,
-          categoryName,
-          crawlerInstance
-        );
-        logger.info(
-          `🚀 Enqueued ${productCount} products from ${categoryName}`
-        );
-      } catch (categoryError) {
-        logger.error(
-          `❌ Failed to process predefined category ${categoryName}: ${categoryError}`
-        );
-      }
-    }
+    await processPredefinedCategories(page, crawlerInstance);
   }
 }
 

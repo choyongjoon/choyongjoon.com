@@ -1,5 +1,5 @@
 import { PlaywrightCrawler } from 'crawlee';
-import type { Page } from 'playwright';
+import type { Locator, Page } from 'playwright';
 import { logger } from '../../shared/logger';
 import {
   type Product,
@@ -107,6 +107,66 @@ async function extractCategoriesFromMenu(
   }
 }
 
+async function findNextPageLink(
+  paginationLinks: Locator[],
+  currentPage: number
+): Promise<Locator | null> {
+  for (const link of paginationLinks) {
+    const linkText = await link.textContent();
+    const href = await link.getAttribute('href');
+
+    if (
+      href &&
+      (linkText?.includes('다음') ||
+        linkText?.includes('next') ||
+        linkText?.trim() === String(currentPage + 1))
+    ) {
+      return link;
+    }
+  }
+  return null;
+}
+
+function shouldContinuePagination(
+  pageProducts: {
+    name: string;
+    nameEn: string | null;
+    imageUrl: string;
+    description: string | null;
+  }[]
+): boolean {
+  if (isTestMode) {
+    logger.info('🧪 Test mode: limiting to first page only');
+    return false;
+  }
+
+  if (pageProducts.length === 0) {
+    return false;
+  }
+
+  return true;
+}
+
+async function navigateToNextPage(
+  page: Page,
+  currentPage: number
+): Promise<boolean> {
+  const paginationLinks = await page.locator(SELECTORS.pagination).all();
+  const nextPageLink = await findNextPageLink(paginationLinks, currentPage);
+
+  if (nextPageLink) {
+    const linkText = await nextPageLink.textContent();
+    logger.info(`🔗 Found next page link: ${linkText?.trim()}`);
+
+    await nextPageLink.click();
+    await waitForLoad(page);
+    return true;
+  }
+
+  logger.info(`📄 No more pages found after page ${currentPage}`);
+  return false;
+}
+
 async function extractProductsFromListing(
   page: Page,
   categoryName: string
@@ -136,7 +196,6 @@ async function extractProductsFromListing(
 
       await waitForLoad(page);
 
-      // Extract products from current page
       const pageProducts = await extractProductsFromCurrentPage(
         page,
         categoryName,
@@ -144,44 +203,15 @@ async function extractProductsFromListing(
       );
       allProducts.push(...pageProducts);
 
-      // Check if there are more pages and we haven't reached test mode limit
-      if (!isTestMode && pageProducts.length > 0) {
-        const paginationLinks = await page.locator(SELECTORS.pagination).all();
-
-        // Look for next page link or numeric page links
-        let nextPageFound = false;
-        for (const link of paginationLinks) {
-          const linkText = await link.textContent();
-          const href = await link.getAttribute('href');
-
-          if (
-            href &&
-            (linkText?.includes('다음') ||
-              linkText?.includes('next') ||
-              linkText?.trim() === String(currentPage + 1))
-          ) {
-            logger.info(`🔗 Found next page link: ${linkText?.trim()}`);
-
-            await link.click();
-            await waitForLoad(page);
-
-            currentPage++;
-            nextPageFound = true;
-            break;
-          }
-        }
-
-        if (!nextPageFound) {
-          logger.info(`📄 No more pages found after page ${currentPage}`);
+      const shouldContinue = shouldContinuePagination(pageProducts);
+      if (shouldContinue) {
+        const navigatedToNext = await navigateToNextPage(page, currentPage);
+        if (navigatedToNext) {
+          currentPage++;
+        } else {
           hasMorePages = false;
         }
       } else {
-        hasMorePages = false;
-      }
-
-      // In test mode, limit to one page
-      if (isTestMode) {
-        logger.info('🧪 Test mode: limiting to first page only');
         hasMorePages = false;
       }
     }
