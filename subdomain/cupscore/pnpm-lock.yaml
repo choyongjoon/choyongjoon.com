@@ -72,6 +72,9 @@ importers:
         specifier: ^3.24.2
         version: 3.25.76
     devDependencies:
+      '@clerk/backend':
+        specifier: ^2.6.2
+        version: 2.6.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@types/node':
         specifier: ^22.5.4
         version: 22.16.5

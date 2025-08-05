@@ -38,8 +38,6 @@ export default defineSchema({
   reviews: defineTable({
     productId: v.id('products'),
     userId: v.string(), // Clerk user ID
-    userName: v.optional(v.string()), // User display name for performance
-    userImageUrl: v.optional(v.string()), // User profile image URL
     rating: v.number(), // 1-5 scale (1=최악, 2=별로, 3=보통, 3.5=좋음, 4=추천, 4.5=강력추천, 5=최고)
     text: v.optional(v.string()), // Optional review text
     imageStorageIds: v.optional(v.array(v.id('_storage'))), // Up to 2 photos

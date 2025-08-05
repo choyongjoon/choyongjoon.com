@@ -1,11 +1,10 @@
 import type { Id } from 'convex/_generated/dataModel';
+import { UserProfile } from './UserProfile';
 
 interface ReviewCardProps {
   review: {
     _id: Id<'reviews'>;
     userId: string;
-    userName?: string;
-    userImageUrl?: string;
     rating: number;
     text?: string;
     imageUrls?: string[];
@@ -35,29 +34,11 @@ export function ReviewCard({
         {/* User Info and Rating */}
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
-            {/* User Avatar */}
-            <div className="avatar">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                {review.userImageUrl ? (
-                  <img
-                    alt={review.userName || '사용자'}
-                    className="h-full w-full rounded-full object-cover"
-                    src={review.userImageUrl}
-                  />
-                ) : (
-                  <span className="font-medium text-primary text-sm">
-                    {(review.userName || '익명')[0]}
-                  </span>
-                )}
-              </div>
-            </div>
+            <UserProfile userId={review.userId} />
 
-            {/* User Name and Rating */}
+            {/* Rating and Edit Status */}
             <div className="flex-1">
               <div className="mb-1 flex items-center gap-2">
-                <span className="font-medium text-sm">
-                  {review.userName || '익명 사용자'}
-                </span>
                 {wasEdited && (
                   <span className="text-base-content/50 text-xs">(수정됨)</span>
                 )}

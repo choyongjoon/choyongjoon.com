@@ -154,8 +154,6 @@ export const upsertReview = mutation({
   args: {
     productId: v.id('products'),
     userId: v.string(),
-    userName: v.optional(v.string()),
-    userImageUrl: v.optional(v.string()),
     rating: v.number(),
     text: v.optional(v.string()),
     imageStorageIds: v.optional(v.array(v.id('_storage'))),
@@ -191,8 +189,6 @@ export const upsertReview = mutation({
         rating: args.rating,
         text: args.text,
         imageStorageIds: args.imageStorageIds,
-        userName: args.userName,
-        userImageUrl: args.userImageUrl,
         updatedAt: now,
         isVisible: true, // Reset visibility on update
       });
@@ -202,8 +198,6 @@ export const upsertReview = mutation({
       reviewId = await ctx.db.insert('reviews', {
         productId: args.productId,
         userId: args.userId,
-        userName: args.userName,
-        userImageUrl: args.userImageUrl,
         rating: args.rating,
         text: args.text,
         imageStorageIds: args.imageStorageIds,
