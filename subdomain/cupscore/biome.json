@@ -1,8 +1,5 @@
 {
   "extends": "//",
-  "files": {
-    "includes": ["**", "!**/_generated/**", "!**/routeTree.gen.ts"]
-  },
   "linter": {
     "rules": {
       "complexity": {
@@ -20,12 +17,7 @@
         "noNoninteractiveElementInteractions": "off"
       },
       "style": {
-        "noHeadElement": "off",
-        "useFilenamingConvention": {
-          "options": {
-            "filenameCases": ["camelCase", "PascalCase", "kebab-case"]
-          }
-        }
+        "noHeadElement": "off"
       }
     }
   }
