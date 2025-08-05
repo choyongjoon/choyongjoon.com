@@ -1,11 +1,7 @@
-import { convexQuery } from '@convex-dev/react-query';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import type { Doc } from 'convex/_generated/dataModel';
 import { CafeCard } from '~/components/CafeCard';
-import { api } from '../../convex/_generated/api';
 
-export function BrandCafeListSection() {
-  const { data: cafes } = useSuspenseQuery(convexQuery(api.cafes.list, {}));
-
+export function BrandCafeListSection({ cafes }: { cafes: Doc<'cafes'>[] }) {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Cafe List Section */}

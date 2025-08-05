@@ -40,7 +40,7 @@ function Home() {
         </div>
       </div>
 
-      <BrandCafeListSection />
+      <BrandCafeListSection cafes={cafes} />
     </div>
   );
 }

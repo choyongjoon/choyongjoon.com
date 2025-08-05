@@ -1,5 +1,5 @@
 import { convexQuery } from '@convex-dev/react-query';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 
 import { api } from '../../convex/_generated/api';
@@ -12,9 +12,24 @@ export function ProductCard({
 }: {
   product: Doc<'products'> & { cafeName?: string };
 }) {
-  const { data: reviewStats } = useSuspenseQuery(
-    convexQuery(api.reviews.getProductStats, { productId: product._id })
-  );
+  const { data: reviewStats } = useQuery({
+    ...convexQuery(api.reviews.getProductStats, { productId: product._id }),
+    enabled: !!product._id,
+  });
+
+  const defaultReviewStats = {
+    averageRating: 0,
+    totalReviews: 0,
+    ratingDistribution: {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+      3.5: 0,
+      4.5: 0,
+    },
+  };
 
   return (
     <Link
@@ -37,7 +52,7 @@ export function ProductCard({
         {product.cafeName && (
           <p className="text-base-content/60 text-sm">{product.cafeName}</p>
         )}
-        <RatingSummary reviewStats={reviewStats} />
+        <RatingSummary reviewStats={reviewStats || defaultReviewStats} />
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             {product.price && (

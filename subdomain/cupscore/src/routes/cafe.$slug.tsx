@@ -1,34 +1,42 @@
 import { convexQuery } from '@convex-dev/react-query';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import type { Id } from 'convex/_generated/dataModel';
 import { useState } from 'react';
+import CafeHeader from '~/components/cafe/CafeHeader';
 import { api } from '../../convex/_generated/api';
-import { ConvexImage } from '../components/ConvexImage';
 import { ProductCard } from '../components/ProductCard';
 import { getOrderedCategories } from '../utils/categories';
+import { seo } from '../utils/seo';
 
 export const Route = createFileRoute('/cafe/$slug')({
   component: CafePage,
   loader: async (opts) => {
-    await opts.context.queryClient.ensureQueryData(
+    const cafe = await opts.context.queryClient.ensureQueryData(
       convexQuery(api.cafes.getBySlug, { slug: opts.params.slug })
     );
+    return { cafe };
   },
+  head: ({ loaderData }) => ({
+    meta: [
+      ...seo({
+        title: `잔점 | ${loaderData?.cafe?.name || '카페'}`,
+        description: `${loaderData?.cafe?.name || '카페'} 음료 정보를 확인하세요.`,
+      }),
+    ],
+  }),
 });
 
 function CafePage() {
-  const { slug } = Route.useParams();
+  const { cafe } = Route.useLoaderData();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const { data: cafe } = useSuspenseQuery(
-    convexQuery(api.cafes.getBySlug, { slug })
-  );
-  const { data: products } = useSuspenseQuery(
-    convexQuery(api.products.getByCafe, {
+  const { data: products, isLoading: productsLoading } = useQuery({
+    ...convexQuery(api.products.getByCafe, {
       cafeId: cafe?._id as Id<'cafes'>,
-    })
-  );
+    }),
+    enabled: !!cafe?._id,
+  });
 
   const availableCategories = Array.from(
     new Set(products?.map((p) => p.category).filter(Boolean) || [])
@@ -36,33 +44,17 @@ function CafePage() {
   const categories = getOrderedCategories(availableCategories as string[]);
   const filteredProducts =
     selectedCategory === 'all'
-      ? products
+      ? products?.slice(0, 10)
       : products?.filter((p) => p.category === selectedCategory);
+
+  if (!cafe) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-base-200">
       {/* Cafe Header */}
-      <div className="bg-primary py-12 text-primary-content">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-6">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-content/20">
-              <ConvexImage
-                alt={cafe?.name}
-                className="h-full w-full object-cover"
-                fallbackImageUrl={cafe?.imageStorageId}
-                getImageUrl={api.products.getImageUrl}
-                imageStorageId={cafe?.imageStorageId}
-              />
-            </div>
-            <div>
-              <h1 className="font-bold text-4xl">{cafe?.name}</h1>
-              <p className="mt-2 text-lg opacity-90">
-                {products?.length || 0}개의 상품
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CafeHeader cafe={cafe} numProducts={products?.length} />
 
       <div className="container mx-auto px-4 py-8">
         {/* Category Filter */}
@@ -76,27 +68,56 @@ function CafePage() {
             >
               전체
             </button>
-            {categories.map((category) => (
-              <button
-                className={`btn btn-sm ${selectedCategory === category ? 'btn-primary' : 'btn-outline'}`}
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                type="button"
-              >
-                {category}
-              </button>
-            ))}
+            {productsLoading
+              ? // Category loading skeleton
+                Array.from({ length: 4 }, (_, i) => (
+                  <div
+                    className="h-8 w-16 animate-pulse rounded bg-base-300"
+                    key={`category-skeleton-${
+                      // biome-ignore lint/suspicious/noArrayIndexKey: skeleton
+                      i
+                    }`}
+                  />
+                ))
+              : categories.map((category) => (
+                  <button
+                    className={`btn btn-sm ${selectedCategory === category ? 'btn-primary' : 'btn-outline'}`}
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    type="button"
+                  >
+                    {category}
+                  </button>
+                ))}
           </div>
         </div>
 
         {/* Products Grid */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {filteredProducts?.map((product) => (
-            <ProductCard key={product._id} product={product} />
-          ))}
+          {productsLoading
+            ? // Loading skeleton for products
+              Array.from({ length: 8 }, (_, i) => (
+                <div
+                  className="card bg-base-100 shadow-sm"
+                  key={`product-skeleton-${
+                    // biome-ignore lint/suspicious/noArrayIndexKey: skeleton
+                    i
+                  }`}
+                >
+                  <div className="aspect-square w-full animate-pulse bg-base-300" />
+                  <div className="card-body p-4">
+                    <div className="h-4 w-3/4 animate-pulse rounded bg-base-300" />
+                    <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-base-300" />
+                    <div className="mt-2 h-6 w-16 animate-pulse rounded bg-base-300" />
+                  </div>
+                </div>
+              ))
+            : filteredProducts?.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
         </div>
 
-        {filteredProducts?.length === 0 && (
+        {!productsLoading && filteredProducts?.length === 0 && (
           <div className="py-12 text-center">
             <p className="text-base-content/70">상품이 없습니다.</p>
           </div>

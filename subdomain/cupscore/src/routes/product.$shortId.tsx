@@ -12,13 +12,6 @@ import { useScrollToTop } from '../utils/useScrollToTop';
 
 export const Route = createFileRoute('/product/$shortId')({
   component: ProductPage,
-  loader: async (opts) => {
-    await opts.context.queryClient.ensureQueryData(
-      convexQuery(api.products.getProductWithImageByShortId, {
-        shortId: opts.params.shortId,
-      })
-    );
-  },
 });
 
 function ProductPage() {
