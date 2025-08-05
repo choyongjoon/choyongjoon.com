@@ -6,7 +6,7 @@ import { mutation, query } from './_generated/server';
 /**
  * Rating scale mapping for Korean labels
  */
-export const RATING_LABELS = {
+export const RATING_TEXTS = {
   1: '최악',
   2: '별로',
   3: '보통',
@@ -51,8 +51,8 @@ export const getByProduct = query({
         return {
           ...review,
           imageUrls,
-          ratingLabel:
-            RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
+          ratingText:
+            RATING_TEXTS[review.rating as keyof typeof RATING_TEXTS] || '',
         };
       })
     );
@@ -141,8 +141,8 @@ export const getUserReview = query({
     return {
       ...review,
       imageUrls,
-      ratingLabel:
-        RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
+      ratingText:
+        RATING_TEXTS[review.rating as keyof typeof RATING_TEXTS] || '',
     };
   },
 });
@@ -322,8 +322,8 @@ export const getUserReviews = query({
           ...review,
           product,
           imageUrls,
-          ratingLabel:
-            RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
+          ratingText:
+            RATING_TEXTS[review.rating as keyof typeof RATING_TEXTS] || '',
         };
       })
     );
@@ -411,8 +411,8 @@ export const getRecentReviews = query({
           ...review,
           product,
           imageUrls,
-          ratingLabel:
-            RATING_LABELS[review.rating as keyof typeof RATING_LABELS] || '',
+          ratingText:
+            RATING_TEXTS[review.rating as keyof typeof RATING_TEXTS] || '',
         };
       })
     );

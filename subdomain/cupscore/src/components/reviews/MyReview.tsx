@@ -1,30 +1,12 @@
 import { Link } from '@tanstack/react-router';
 import type { Doc } from 'convex/_generated/dataModel';
+import { RatingText } from './RatingText';
 
 interface MyReview extends Doc<'reviews'> {
   product: Doc<'products'> | null;
-  ratingLabel: string | undefined;
+  ratingText: string | undefined;
   imageUrls: string[] | undefined;
   text?: string;
-}
-
-function getColorByRating(rating: number) {
-  if (rating >= 5) {
-    return 'text-primary';
-  }
-  if (rating >= 4.5) {
-    return 'text-primary/90';
-  }
-  if (rating >= 4) {
-    return 'text-primary/80';
-  }
-  if (rating >= 3.5) {
-    return 'text-primary/70';
-  }
-  if (rating >= 3) {
-    return 'text-primary/60';
-  }
-  return 'text-primary/40';
 }
 
 export function MyReview({ review }: { review: MyReview }) {
@@ -48,9 +30,12 @@ export function MyReview({ review }: { review: MyReview }) {
 
       {/* Review content */}
       <div className="pl-0">
-        <p className={`mb-2 ${getColorByRating(review.rating)}`}>
-          {review.ratingLabel}
-        </p>
+        <div className="mb-2">
+          <RatingText
+            rating={review.rating}
+            ratingText={review.ratingText || ''}
+          />
+        </div>
 
         {review.text && <p className="mb-3 text-base-content">{review.text}</p>}
 

@@ -154,7 +154,7 @@ type UpsertProductArgs = {
   cafeId: Id<'cafes'>;
   name: string;
   nameEn?: string;
-  category: string;
+  category?: string;
   description?: string;
   externalImageUrl?: string;
   imageStorageId?: Id<'_storage'>;
@@ -166,14 +166,14 @@ type UpsertProductArgs = {
 };
 
 type ExistingProduct = {
-  _id: string;
+  _id: Id<'products'>;
   name: string;
-  category: string;
+  category?: string;
   price?: number;
   description?: string;
   externalImageUrl?: string;
   imageStorageId?: Id<'_storage'>;
-  isActive: boolean;
+  isActive?: boolean;
   removedAt?: number;
 };
 
@@ -188,14 +188,14 @@ function hasProductChanges(
     existing.description !== args.description ||
     existing.externalImageUrl !== args.externalImageUrl ||
     existing.imageStorageId !== args.imageStorageId ||
-    existing.isActive !== (args.isActive ?? true)
+    (existing.isActive ?? true) !== (args.isActive ?? true)
   );
 }
 
 function scheduleImageDownloadIfNeeded(
   ctx: MutationCtx,
   args: UpsertProductArgs,
-  productId: string,
+  productId: Id<'products'>,
   shouldDownload: boolean
 ): void {
   if (shouldDownload && args.downloadImages && args.externalImageUrl) {

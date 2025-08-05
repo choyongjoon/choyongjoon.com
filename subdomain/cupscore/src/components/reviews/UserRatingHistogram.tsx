@@ -1,5 +1,5 @@
 import type { RatingDistribution } from '../../../convex/reviews';
-import { RATING_LABELS } from '../../../convex/reviews';
+import { RATING_TEXTS } from '../../../convex/reviews';
 
 interface UserRatingHistogramProps {
   ratingDistribution: RatingDistribution;
@@ -33,7 +33,7 @@ export function UserRatingHistogram({
           <div className="flex items-center gap-3" key={rating}>
             <div className="flex w-20 items-center justify-between gap-2">
               <span className="text-base-content/60 text-xs">
-                {RATING_LABELS[rating]}
+                {RATING_TEXTS[rating]}
               </span>
               <span className="font-medium text-sm">{rating}</span>
             </div>
