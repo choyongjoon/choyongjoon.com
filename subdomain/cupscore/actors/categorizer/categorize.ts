@@ -21,7 +21,6 @@ const __filename = fileURLToPath(import.meta.url);
 // Initialize categorizer
 const categorizer = new ProductCategorizer();
 
-
 // Parse command line arguments
 function parseArgs(): { options: CategorizeOptions } {
   const args = process.argv.slice(2);
@@ -98,7 +97,12 @@ Examples:
 
 // Find the latest file for a specific cafe (same logic as upload command)
 function findLatestFileForCafe(cafeSlug: string): string | null {
-  const outputDir = path.join(process.cwd(), 'actors', 'crawler', 'crawler-outputs');
+  const outputDir = path.join(
+    process.cwd(),
+    'actors',
+    'crawler',
+    'crawler-outputs'
+  );
 
   if (!fs.existsSync(outputDir)) {
     return null;
@@ -121,8 +125,13 @@ function findLatestFileForCafe(cafeSlug: string): string | null {
 
 // Find the most recent file for each available cafe
 function findRecentCrawlerFiles(): string[] {
-  const outputDir = path.join(process.cwd(), 'actors', 'crawler', 'crawler-outputs');
-  
+  const outputDir = path.join(
+    process.cwd(),
+    'actors',
+    'crawler',
+    'crawler-outputs'
+  );
+
   if (!fs.existsSync(outputDir)) {
     logger.warn('Crawler outputs directory does not exist');
     return [];
@@ -130,22 +139,26 @@ function findRecentCrawlerFiles(): string[] {
 
   try {
     const recentFiles: string[] = [];
-    const cafeKeys = Object.keys(AVAILABLE_CAFES) as (keyof typeof AVAILABLE_CAFES)[];
-    
+    const cafeKeys = Object.keys(
+      AVAILABLE_CAFES
+    ) as (keyof typeof AVAILABLE_CAFES)[];
+
     for (const cafeKey of cafeKeys) {
       const cafe = AVAILABLE_CAFES[cafeKey];
       const latestFile = findLatestFileForCafe(cafe.slug);
-      
+
       if (latestFile) {
         recentFiles.push(latestFile);
-      } 
+      }
     }
-    
-    logger.info(`🔍 Found ${recentFiles.length} recent crawler files (most recent per cafe):`);
-    recentFiles.forEach((file: string) => {
+
+    logger.info(
+      `🔍 Found ${recentFiles.length} recent crawler files (most recent per cafe):`
+    );
+    for (const file of recentFiles) {
       logger.info(`  📄 ${path.basename(file)}`);
-    });
-    
+    }
+
     return recentFiles;
   } catch (error) {
     logger.error('Failed to find crawler files:', error);
@@ -154,10 +167,10 @@ function findRecentCrawlerFiles(): string[] {
 }
 
 // Read products from JSON file
-async function getProductsFromJson(
+function getProductsFromJson(
   filePath: string,
   limit?: number
-): Promise<CrawledProduct[]> {
+): CrawledProduct[] {
   try {
     if (!fs.existsSync(filePath)) {
       throw new Error(`JSON file not found: ${filePath}`);
@@ -177,10 +190,7 @@ async function getProductsFromJson(
 }
 
 // Write products back to JSON file
-async function writeProductsToJson(
-  filePath: string,
-  products: CrawledProduct[]
-): Promise<void> {
+function writeProductsToJson(filePath: string, products: CrawledProduct[]) {
   try {
     const jsonData = JSON.stringify(products, null, 2);
     fs.writeFileSync(filePath, jsonData, 'utf-8');
@@ -192,8 +202,6 @@ async function writeProductsToJson(
     throw error;
   }
 }
-
-
 
 // Interactive mode for getting human input
 function getHumanCategoryChoice(
@@ -333,26 +341,29 @@ function updateCategoryStats(
 }
 
 // Handle category update and logging
-async function handleCategoryUpdate(
+function handleCategoryUpdate(
   product: CrawledProduct,
   finalCategory: Category,
   result: CategorizerResult,
   options: CategorizeOptions,
   stats: CategorizeStats
-): Promise<void> {
+) {
   const shouldUpdate = options.force || product.category !== finalCategory;
 
   // Format the applied rule for debugging
   const ruleInfo = result.matchedRule ? ` | Rule: ${result.matchedRule}` : '';
-  const externalCategoryInfo = product.externalCategory ? ` | External: "${product.externalCategory}"` : '';
-  
+  const externalCategoryInfo = product.externalCategory
+    ? ` | External: "${product.externalCategory}"`
+    : '';
+
   if (shouldUpdate) {
     // Update the category in memory
     const oldCategory = product.category;
     product.category = finalCategory;
     stats.updated++;
-    
-    const action = options.force && oldCategory === finalCategory ? 'Forced' : 'Updated';
+
+    const action =
+      options.force && oldCategory === finalCategory ? 'Forced' : 'Updated';
     logger.info(
       `✅ ${action} "${product.name}": ${oldCategory} → ${finalCategory} | Source: ${result.source} | Confidence: ${result.confidence}${ruleInfo}${externalCategoryInfo}`
     );
@@ -383,7 +394,6 @@ async function processJsonProducts(
 
   return products;
 }
-
 
 // Print categorization summary
 function printSummary(
@@ -452,27 +462,34 @@ async function categorizeProducts(options: CategorizeOptions): Promise<void> {
     // Process all recent crawler JSON files (most recent per cafe)
     logger.info('🤖 Processing most recent crawler files for each cafe');
     const recentFiles = findRecentCrawlerFiles();
-    
+
     if (recentFiles.length === 0) {
       logger.warn('⚠️  No recent crawler files found. Run crawlers first.');
       return;
     }
-    
+
     // Process each file
     for (const filePath of recentFiles) {
       logger.info(`\n${'='.repeat(60)}`);
       logger.info(`🏪 Processing: ${path.basename(filePath)}`);
       logger.info(`${'='.repeat(60)}`);
-      
+
       try {
-        const processedProducts = await processJsonProducts(filePath, options, stats);
-        
+        const processedProducts = await processJsonProducts(
+          filePath,
+          options,
+          stats
+        );
+
         // Always write back to file unless dry-run
         if (!options.dryRun) {
           await writeProductsToJson(filePath, processedProducts);
         }
       } catch (error) {
-        logger.error(`Failed to process file ${path.basename(filePath)}:`, error);
+        logger.error(
+          `Failed to process file ${path.basename(filePath)}:`,
+          error
+        );
         stats.errors++;
       }
     }
@@ -491,7 +508,9 @@ async function main() {
 
     logger.info('🏷️  Product Categorizer Starting');
     logger.info('🤖 Will process most recent crawler file for each cafe');
-    logger.info('💾 Categories will be written back to JSON files automatically');
+    logger.info(
+      '💾 Categories will be written back to JSON files automatically'
+    );
 
     if (options.dryRun) {
       logger.info('🔍 DRY RUN MODE - No data will be updated');

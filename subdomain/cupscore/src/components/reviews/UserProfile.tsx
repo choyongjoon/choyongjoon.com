@@ -20,9 +20,6 @@ interface UserProfileProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-// Cache for user profiles to avoid repeated API calls
-const userProfileCache = new Map<string, ClerkUser>();
-
 export function UserProfile({
   userId,
   className = '',
