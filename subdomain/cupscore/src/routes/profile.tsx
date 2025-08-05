@@ -2,6 +2,7 @@ import { useUser } from '@clerk/tanstack-react-start';
 import { convexQuery } from '@convex-dev/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { MyReview } from '~/components/reviews/MyReview';
 import { UserRatingHistogram } from '~/components/reviews/UserRatingHistogram';
 import { api } from '../../convex/_generated/api';
 
@@ -170,63 +171,7 @@ function ProfilePage() {
                   return (
                     <div className="space-y-4">
                       {userReviews.map((review) => (
-                        <div
-                          className="border-base-200 border-b pb-4 last:border-b-0 last:pb-0"
-                          key={review._id}
-                        >
-                          {/* Product link */}
-                          {review.product && (
-                            <div className="mb-3">
-                              <Link
-                                className="link link-primary font-medium"
-                                params={{ shortId: review.product.shortId }}
-                                to="/product/$shortId"
-                              >
-                                {review.product.name}
-                              </Link>
-                              <p className="text-base-content/60 text-sm">
-                                {new Date(review.createdAt).toLocaleDateString(
-                                  'ko-KR'
-                                )}
-                                {review.updatedAt !== review.createdAt &&
-                                  ' (수정됨)'}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Review content */}
-                          <div className="pl-0">
-                            <div className="mb-2 flex items-center gap-2">
-                              <div className="badge badge-primary badge-md">
-                                {review.ratingLabel}
-                              </div>
-                            </div>
-
-                            {review.text && (
-                              <p className="mb-3 text-base-content">
-                                {review.text}
-                              </p>
-                            )}
-
-                            {review.imageUrls &&
-                              review.imageUrls.length > 0 && (
-                                <div className="grid max-w-md grid-cols-2 gap-2">
-                                  {review.imageUrls.map((imageUrl, index) => (
-                                    <div
-                                      className="aspect-square overflow-hidden rounded-lg"
-                                      key={`${review._id}-image-${index}`}
-                                    >
-                                      <img
-                                        alt={`평가 이미지 ${index + 1}`}
-                                        className="h-full w-full object-cover"
-                                        src={imageUrl}
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                          </div>
-                        </div>
+                        <MyReview key={review._id} review={review} />
                       ))}
                     </div>
                   );
