@@ -1,63 +1,21 @@
-import { useUser } from '@clerk/tanstack-react-start';
 import { convexQuery } from '@convex-dev/react-query';
 import { useQuery } from '@tanstack/react-query';
 import type { Id } from 'convex/_generated/dataModel';
-import { useEffect, useState } from 'react';
 import { api } from '../../../convex/_generated/api';
 import { RatingText } from './RatingText';
 
-interface ClerkUser {
-  id: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  fullName?: string | null;
-  imageUrl?: string | null;
-  username?: string | null;
-}
-
 function useUserProfile(userId: string) {
-  const { user: currentUser } = useUser();
-  const [userProfile, setUserProfile] = useState<ClerkUser | null>(null);
-
-  const isCurrentUser = currentUser?.id === userId;
-
   const { data: fetchedUser } = useQuery({
-    ...convexQuery(api.users.getUserProfile, { userId }),
-    enabled: !!userId && !isCurrentUser,
+    ...convexQuery(api.users.getById, { userId: userId as Id<'users'> }),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 
-  const currentUserProfile =
-    isCurrentUser && currentUser
-      ? {
-          id: currentUser.id,
-          firstName: currentUser.firstName || null,
-          lastName: currentUser.lastName || null,
-          fullName: currentUser.fullName || null,
-          imageUrl: currentUser.imageUrl || null,
-          username: currentUser.username || null,
-        }
-      : null;
+  const displayName = fetchedUser?.name || '익명 사용자';
+  // TODO
+  const imageUrl = undefined;
 
-  useEffect(() => {
-    if (currentUserProfile) {
-      setUserProfile(currentUserProfile);
-    } else if (fetchedUser) {
-      setUserProfile(fetchedUser);
-    }
-  }, [currentUserProfile, fetchedUser]);
-
-  const displayName =
-    userProfile?.fullName ||
-    userProfile?.firstName ||
-    userProfile?.username ||
-    (isCurrentUser ? '나' : '익명 사용자');
-
-  const imageUrl = userProfile?.imageUrl;
-  const initials = displayName.slice(0, 1).toUpperCase();
-
-  return { displayName, imageUrl, initials };
+  return { displayName, imageUrl };
 }
 
 function ReviewImageModal({
@@ -124,7 +82,7 @@ export function ReviewCard({
   onEdit,
   onDelete,
 }: ReviewCardProps) {
-  const { displayName, imageUrl, initials } = useUserProfile(review.userId);
+  const { displayName, imageUrl } = useUserProfile(review.userId);
 
   const isOwner = currentUserId === review.userId;
   const createdDate = new Date(review.createdAt);
@@ -140,7 +98,7 @@ export function ReviewCard({
             {/* Profile Image */}
             <div className="avatar">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                {imageUrl ? (
+                {imageUrl && (
                   <img
                     alt={displayName}
                     className="h-full w-full rounded-full object-cover"
@@ -149,10 +107,6 @@ export function ReviewCard({
                     }}
                     src={imageUrl}
                   />
-                ) : (
-                  <span className="font-medium text-primary text-sm">
-                    {initials}
-                  </span>
                 )}
               </div>
             </div>

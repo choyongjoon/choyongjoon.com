@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-import { ClerkProvider } from '@clerk/tanstack-react-start';
+import { ClerkProvider, useAuth } from '@clerk/tanstack-react-start';
 import type { QueryClient } from '@tanstack/react-query';
 import {
   createRootRouteWithContext,
@@ -8,6 +8,8 @@ import {
   Scripts,
 } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
+import { ConvexReactClient } from 'convex/react';
+import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { PostHogProvider } from 'posthog-js/react';
 import type * as React from 'react';
 import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary';
@@ -61,6 +63,8 @@ export const Route = createRootRouteWithContext<{
   shellComponent: RootDocument,
 });
 
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <PostHogProvider
@@ -73,17 +77,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       }}
     >
       <ClerkProvider>
-        <html lang="ko">
-          <head>
-            <HeadContent />
-          </head>
-          <body>
-            <NavBar />
-            {children}
-            <TanStackRouterDevtools position="bottom-right" />
-            <Scripts />
-          </body>
-        </html>
+        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+          <html lang="ko">
+            <head>
+              <HeadContent />
+            </head>
+            <body>
+              <NavBar />
+              {children}
+              <TanStackRouterDevtools position="bottom-right" />
+              <Scripts />
+            </body>
+          </html>
+        </ConvexProviderWithClerk>
       </ClerkProvider>
     </PostHogProvider>
   );

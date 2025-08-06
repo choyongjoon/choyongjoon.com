@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as cafes from "../cafes.js";
 import type * as dataUploader from "../dataUploader.js";
+import type * as http from "../http.js";
 import type * as imageDownloader from "../imageDownloader.js";
 import type * as products from "../products.js";
 import type * as reviews from "../reviews.js";
@@ -33,6 +34,7 @@ import type * as users from "../users.js";
 declare const fullApi: ApiFromModules<{
   cafes: typeof cafes;
   dataUploader: typeof dataUploader;
+  http: typeof http;
   imageDownloader: typeof imageDownloader;
   products: typeof products;
   reviews: typeof reviews;

@@ -1,54 +1,73 @@
-import { createClerkClient } from '@clerk/backend';
-import { v } from 'convex/values';
-import { query } from './_generated/server';
+import type { UserJSON } from '@clerk/backend';
+import { type Validator, v } from 'convex/values';
+import { internalMutation, type QueryCtx, query } from './_generated/server';
 
-/**
- * Get user profile information from Clerk using the official SDK
- */
-export const getUserProfile = query({
-  args: { userId: v.string() },
-  handler: async (_, { userId }) => {
-    try {
-      const clerkSecretKey = process.env.CLERK_SECRET_KEY;
-      if (!clerkSecretKey) {
-        // Fallback for development/testing
-        return {
-          id: userId,
-          firstName: null,
-          lastName: null,
-          fullName: '익명 사용자',
-          imageUrl: null,
-          username: null,
-        };
-      }
+export const current = query({
+  args: {},
+  handler: async (ctx) => {
+    return await getCurrentUser(ctx);
+  },
+});
 
-      // Initialize Clerk client with secret key
-      const clerk = createClerkClient({ secretKey: clerkSecretKey });
+export const upsertFromClerk = internalMutation({
+  args: { data: v.any() as Validator<UserJSON> }, // no runtime validation, trust Clerk
+  async handler(ctx, { data }) {
+    const userAttributes = {
+      name: `${data.first_name} ${data.last_name}`,
+      externalId: data.id,
+    };
 
-      // Fetch user from Clerk using official SDK
-      const user = await clerk.users.getUser(userId);
-
-      return {
-        id: user.id,
-        firstName: user.firstName || null,
-        lastName: user.lastName || null,
-        fullName:
-          user.firstName && user.lastName
-            ? `${user.firstName} ${user.lastName}`
-            : user.firstName || user.lastName || '익명 사용자',
-        imageUrl: user.imageUrl || null,
-        username: user.username || null,
-      };
-    } catch {
-      // Return fallback profile if user fetch fails
-      return {
-        id: userId,
-        firstName: null,
-        lastName: null,
-        fullName: '익명 사용자',
-        imageUrl: null,
-        username: null,
-      };
+    const user = await userByExternalId(ctx, data.id);
+    if (user === null) {
+      await ctx.db.insert('users', userAttributes);
+    } else {
+      await ctx.db.patch(user._id, userAttributes);
     }
+  },
+});
+
+export const deleteFromClerk = internalMutation({
+  args: { clerkUserId: v.string() },
+  async handler(ctx, { clerkUserId }) {
+    const user = await userByExternalId(ctx, clerkUserId);
+
+    if (user !== null) {
+      await ctx.db.delete(user._id);
+    } else {
+      // biome-ignore lint/suspicious/noConsole: it's ok to use console under convex
+      console.warn(
+        `Can't delete user, there is none for Clerk user ID: ${clerkUserId}`
+      );
+    }
+  },
+});
+
+export async function getCurrentUserOrThrow(ctx: QueryCtx) {
+  const userRecord = await getCurrentUser(ctx);
+  if (!userRecord) {
+    throw new Error("Can't get current user");
+  }
+  return userRecord;
+}
+
+export async function getCurrentUser(ctx: QueryCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+  if (identity === null) {
+    return null;
+  }
+  return await userByExternalId(ctx, identity.subject);
+}
+
+async function userByExternalId(ctx: QueryCtx, externalId: string) {
+  return await ctx.db
+    .query('users')
+    .withIndex('byExternalId', (q) => q.eq('externalId', externalId))
+    .unique();
+}
+
+export const getById = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    return await ctx.db.get(userId);
   },
 });
