@@ -66,10 +66,10 @@ const maxRequestsInTestMode = isTestMode
   : 200;
 
 const CRAWLER_CONFIG = {
-  maxConcurrency: 3,
-  maxRequestsPerCrawl: isTestMode ? maxRequestsInTestMode : 200,
+  maxConcurrency: 5, // Increased from 3 to 5
+  maxRequestsPerCrawl: isTestMode ? maxRequestsInTestMode : 100, // Reduced from 200 to 100
   maxRequestRetries: 2,
-  requestHandlerTimeoutSecs: isTestMode ? 30 : 45,
+  requestHandlerTimeoutSecs: isTestMode ? 20 : 30, // Reduced from 30/45 to 20/30
   launchOptions: {
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -281,8 +281,9 @@ async function handleProductPage(
   logger.info(`Processing product page: ${productId}`);
 
   try {
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await waitForLoad(page);
+    // Wait for the main product element to ensure content is loaded
+    await page.waitForSelector(SELECTORS.productDetails.name, { timeout: 10000 });
 
     const product = await extractProductData(page);
     if (product.name && product.externalId) {
