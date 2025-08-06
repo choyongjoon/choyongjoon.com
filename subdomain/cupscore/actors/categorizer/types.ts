@@ -81,14 +81,8 @@ export interface Product {
   externalCategory?: string;
 }
 
-export interface CrawledProduct {
+export interface ProductForCategorize {
   name: string;
-  nameEn?: string | null;
-  description?: string | null;
-  price?: string | null;
-  externalImageUrl?: string;
-  category?: string;
   externalCategory: string;
-  externalId: string;
-  externalUrl: string;
+  category?: string;
 }
