@@ -1,9 +1,12 @@
-import { SignInButton } from '@clerk/tanstack-react-start';
 import { Link } from '@tanstack/react-router';
 import { Authenticated, Unauthenticated } from 'convex/react';
+import { useState } from 'react';
+import { SignInPage } from './auth/SignInPage';
 import { BookmarkIcon, SearchIcon, UserIcon } from './icons';
 
 export function NavBar() {
+  const [showSignIn, setShowSignIn] = useState(false);
+
   return (
     <div className="navbar bg-primary text-primary-content shadow-sm">
       <div className="navbar-start">
@@ -60,12 +63,16 @@ export function NavBar() {
           </Link>
         </Authenticated>
         <Unauthenticated>
-          <SignInButton>
-            <button className="btn btn-ghost btn-circle" type="button">
-              <UserIcon />
-            </button>
-          </SignInButton>
+          <button
+            className="btn btn-ghost btn-circle"
+            onClick={() => setShowSignIn(true)}
+            type="button"
+          >
+            <UserIcon />
+          </button>
         </Unauthenticated>
+
+        {showSignIn && <SignInPage onClose={() => setShowSignIn(false)} />}
       </div>
     </div>
   );
