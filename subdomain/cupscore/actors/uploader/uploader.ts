@@ -9,10 +9,7 @@ import { logger } from '../../shared/logger';
 // Load environment variables from .env.local
 dotenv.config({ path: '.env.local' });
 
-const CONVEX_URL =
-  process.env.VITE_CONVEX_URL ||
-  process.env.CONVEX_URL ||
-  'https://your-convex-deployment.convex.cloud';
+const CONVEX_URL = process.env.VITE_CONVEX_URL;
 
 interface UploadOptions {
   file: string;
@@ -44,6 +41,9 @@ class ProductUploader {
   constructor() {
     logger.info(`Initializing ConvexClient with URL: ${CONVEX_URL}`);
     try {
+      if (!CONVEX_URL) {
+        throw new Error('VITE_CONVEX_URL is not set');
+      }
       this.client = new ConvexClient(CONVEX_URL);
       logger.info('ConvexClient initialized successfully');
     } catch (error) {
@@ -131,11 +131,17 @@ class ProductUploader {
     dryRun: boolean,
     downloadImages: boolean
   ): Promise<UploadResult> {
+    const uploadSecret = process.env.CONVEX_UPLOAD_SECRET;
+    if (!uploadSecret) {
+      throw new Error('CONVEX_UPLOAD_SECRET environment variable is required');
+    }
+
     return await this.client.mutation(api.dataUploader.uploadProductsFromJson, {
       products,
       cafeSlug,
       dryRun,
       downloadImages,
+      uploadSecret,
     });
   }
 

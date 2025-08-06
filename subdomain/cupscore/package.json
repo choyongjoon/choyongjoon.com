@@ -8,8 +8,6 @@
     "build": "vite build && tsc --noEmit",
     "start": "node .output/server/index.mjs",
     "crawl": "tsx actors/crawler/crawl.ts",
-    "test:crawl": "tsx actors/crawler/crawl.test.ts",
-    "test:upload": "tsx actors/uploader/upload.test.ts",
     "upload": "tsx actors/uploader/upload.ts",
     "categorize": "tsx actors/categorizer/categorize.ts",
     "test": "vitest"
