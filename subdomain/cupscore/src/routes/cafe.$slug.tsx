@@ -1,16 +1,21 @@
 import { convexQuery } from '@convex-dev/react-query';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import type { Id } from 'convex/_generated/dataModel';
-import { useState } from 'react';
+import { z } from 'zod';
 import CafeHeader from '~/components/cafe/CafeHeader';
 import { api } from '../../convex/_generated/api';
 import { ProductCard } from '../components/ProductCard';
 import { getOrderedCategories } from '../utils/categories';
 import { seo } from '../utils/seo';
 
+const searchSchema = z.object({
+  category: z.string().optional(),
+});
+
 export const Route = createFileRoute('/cafe/$slug')({
   component: CafePage,
+  validateSearch: searchSchema,
   loader: async (opts) => {
     const cafe = await opts.context.queryClient.ensureQueryData(
       convexQuery(api.cafes.getBySlug, { slug: opts.params.slug })
@@ -29,7 +34,8 @@ export const Route = createFileRoute('/cafe/$slug')({
 
 function CafePage() {
   const { cafe } = Route.useLoaderData();
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const { category: selectedCategory } = Route.useSearch();
+  const navigate = useNavigate();
 
   const { data: products, isLoading: productsLoading } = useQuery({
     ...convexQuery(api.products.getByCafe, {
@@ -43,9 +49,24 @@ function CafePage() {
   );
   const categories = getOrderedCategories(availableCategories as string[]);
   const filteredProducts =
-    selectedCategory === 'all'
+    selectedCategory === undefined
       ? products
       : products?.filter((p) => p.category === selectedCategory);
+
+  const handleCategoryChange = (newCategory: string) => {
+    if (!cafe) {
+      return;
+    }
+
+    navigate({
+      to: '/cafe/$slug',
+      params: { slug: cafe.slug },
+      search: {
+        category: newCategory === '전체' ? undefined : newCategory,
+      },
+      replace: true,
+    });
+  };
 
   if (!cafe) {
     return null;
@@ -62,8 +83,8 @@ function CafePage() {
           <h2 className="mb-4 font-semibold text-xl">카테고리</h2>
           <div className="flex flex-wrap gap-2">
             <button
-              className={`btn btn-sm ${selectedCategory === 'all' ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => setSelectedCategory('all')}
+              className={`btn btn-sm ${selectedCategory === undefined ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => handleCategoryChange('전체')}
               type="button"
             >
               전체
@@ -83,7 +104,7 @@ function CafePage() {
                   <button
                     className={`btn btn-sm ${selectedCategory === category ? 'btn-primary' : 'btn-outline'}`}
                     key={category}
-                    onClick={() => setSelectedCategory(category)}
+                    onClick={() => handleCategoryChange(category)}
                     type="button"
                   >
                     {category}
