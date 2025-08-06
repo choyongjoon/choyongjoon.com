@@ -58,7 +58,7 @@ jobs:
           path: |
             node_modules
             ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}
 
   # Job 1: Crawl data for each cafe
   crawl:
@@ -93,7 +93,10 @@ jobs:
         id: playwright_cache
         with:
           path: ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}
+          restore-keys: |
+            cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            cupscore-deps-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install
