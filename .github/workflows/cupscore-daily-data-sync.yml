@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
-          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
+          cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Install dependencies
         run: pnpm install
@@ -56,9 +56,9 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: |
-            subdomain/cupscore/node_modules
+            node_modules
             ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('subdomain/cupscore/pnpm-lock.yaml') }}
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
   # Job 1: Crawl data for each cafe
   crawl:
@@ -86,15 +86,26 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
-          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
+          cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Restore cached dependencies
         uses: actions/cache/restore@v4
+        id: cache
         with:
           path: |
-            subdomain/cupscore/node_modules
+            node_modules
             ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('subdomain/cupscore/pnpm-lock.yaml') }}
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: pnpm install
+        working-directory: ./subdomain/cupscore
+
+      - name: Install Playwright browsers (fallback)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: ./subdomain/cupscore
 
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
@@ -143,15 +154,21 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
-          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
+          cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Restore cached dependencies
         uses: actions/cache/restore@v4
+        id: cache
         with:
           path: |
-            subdomain/cupscore/node_modules
+            node_modules
             ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('subdomain/cupscore/pnpm-lock.yaml') }}
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: pnpm install
+        working-directory: ./subdomain/cupscore
 
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
@@ -227,15 +244,21 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
-          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
+          cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Restore cached dependencies
         uses: actions/cache/restore@v4
+        id: cache
         with:
           path: |
-            subdomain/cupscore/node_modules
+            node_modules
             ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('subdomain/cupscore/pnpm-lock.yaml') }}
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install dependencies (fallback)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: pnpm install
+        working-directory: ./subdomain/cupscore
 
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
