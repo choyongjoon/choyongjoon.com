@@ -108,7 +108,7 @@ jobs:
         working-directory: ./subdomain/cupscore
 
       - name: Create crawler outputs directory
-        run: mkdir -p crawler/crawler-outputs
+        run: mkdir -p actors/crawler/crawler-outputs
         working-directory: ./subdomain/cupscore
 
       - name: Run crawler for ${{ matrix.cafe }}
@@ -119,13 +119,13 @@ jobs:
 
       - name: Check crawler output exists
         run: |
-          if ls crawler/crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
+          if ls actors/crawler/crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
             echo "✅ Crawler output found for ${{ matrix.cafe }}"
-            ls -la crawler/crawler-outputs/${{ matrix.cafe }}-*.json
+            ls -la actors/crawler/crawler-outputs/${{ matrix.cafe }}-*.json
           else
             echo "❌ No crawler output found for ${{ matrix.cafe }}"
-            echo "Expected files matching: crawler/crawler-outputs/${{ matrix.cafe }}-*.json"
-            ls -la crawler/crawler-outputs/ || echo "crawler-outputs directory doesn't exist"
+            echo "Expected files matching: actors/crawler/crawler-outputs/${{ matrix.cafe }}-*.json"
+            ls -la actors/crawler/crawler-outputs/ || echo "crawler-outputs directory doesn't exist"
             exit 1
           fi
         working-directory: ./subdomain/cupscore
@@ -134,7 +134,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: crawler-output-${{ matrix.cafe }}
-          path: subdomain/cupscore/crawler/crawler-outputs/${{ matrix.cafe }}-*.json
+          path: subdomain/cupscore/actors/crawler/crawler-outputs/${{ matrix.cafe }}-*.json
           retention-days: 7
 
       - name: Log crawl completion
@@ -174,7 +174,7 @@ jobs:
         working-directory: ./subdomain/cupscore
 
       - name: Create crawler outputs directory
-        run: mkdir -p crawler-outputs
+        run: mkdir -p actors/crawler/crawler-outputs
         working-directory: ./subdomain/cupscore
 
       - name: Download crawler output for ${{ matrix.cafe }}
@@ -183,12 +183,12 @@ jobs:
         id: download_artifact
         with:
           name: crawler-output-${{ matrix.cafe }}
-          path: subdomain/cupscore/crawler/crawler-outputs
+          path: subdomain/cupscore/actors/crawler/crawler-outputs
 
       - name: Check for cafe data
         id: check_data
         run: |
-          if [[ "${{ steps.download_artifact.outcome }}" == "success" ]] && ls crawler/crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
+          if [[ "${{ steps.download_artifact.outcome }}" == "success" ]] && ls actors/crawler/crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
             echo "has_data=true" >> $GITHUB_OUTPUT
             echo "✅ Found data files for ${{ matrix.cafe }}"
           else
@@ -209,7 +209,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: categorized-output-${{ matrix.cafe }}
-          path: subdomain/cupscore/crawler/crawler-outputs/${{ matrix.cafe }}-*.json
+          path: subdomain/cupscore/actors/crawler/crawler-outputs/${{ matrix.cafe }}-*.json
           retention-days: 7
 
       - name: Log categorization completion
@@ -254,7 +254,7 @@ jobs:
         working-directory: ./subdomain/cupscore
 
       - name: Create crawler outputs directory
-        run: mkdir -p crawler-outputs
+        run: mkdir -p actors/crawler/crawler-outputs
         working-directory: ./subdomain/cupscore
 
       - name: Download categorized output for ${{ matrix.cafe }}
@@ -263,12 +263,12 @@ jobs:
         id: download_artifact
         with:
           name: categorized-output-${{ matrix.cafe }}
-          path: subdomain/cupscore/crawler/crawler-outputs
+          path: subdomain/cupscore/actors/crawler/crawler-outputs
 
       - name: Check for cafe data
         id: check_data
         run: |
-          if [[ "${{ steps.download_artifact.outcome }}" == "success" ]] && ls crawler/crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
+          if [[ "${{ steps.download_artifact.outcome }}" == "success" ]] && ls actors/crawler/crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
             echo "has_data=true" >> $GITHUB_OUTPUT
             echo "✅ Found data files for ${{ matrix.cafe }}"
           else
