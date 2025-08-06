@@ -48,17 +48,21 @@ jobs:
         run: pnpm install
         working-directory: ./subdomain/cupscore
 
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: cupscore-node-modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
         working-directory: ./subdomain/cupscore
 
-      - name: Cache node_modules and Playwright
-        uses: actions/cache/save@v4
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
         with:
-          path: |
-            node_modules
-            ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}
+          path: ~/.cache/ms-playwright
+          key: cupscore-playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
   # Job 1: Crawl data for each cafe
   crawl:
@@ -88,17 +92,22 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'pnpm-lock.yaml'
 
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        id: node_modules_cache
+        with:
+          path: node_modules
+          key: cupscore-node-modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Restore Playwright browsers cache
         uses: actions/cache/restore@v4
         id: playwright_cache
         with:
           path: ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}
-          restore-keys: |
-            cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
-            cupscore-deps-${{ runner.os }}-
+          key: cupscore-playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
+        if: steps.node_modules_cache.outputs.cache-hit != 'true'
         run: pnpm install
         working-directory: ./subdomain/cupscore
 
@@ -169,7 +178,15 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'pnpm-lock.yaml'
 
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        id: node_modules_cache
+        with:
+          path: node_modules
+          key: cupscore-node-modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Install dependencies
+        if: steps.node_modules_cache.outputs.cache-hit != 'true'
         run: pnpm install
         working-directory: ./subdomain/cupscore
 
@@ -249,7 +266,15 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'pnpm-lock.yaml'
 
+      - name: Restore node_modules cache
+        uses: actions/cache/restore@v4
+        id: node_modules_cache
+        with:
+          path: node_modules
+          key: cupscore-node-modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
       - name: Install dependencies
+        if: steps.node_modules_cache.outputs.cache-hit != 'true'
         run: pnpm install
         working-directory: ./subdomain/cupscore
 
