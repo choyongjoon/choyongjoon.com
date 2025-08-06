@@ -64,11 +64,9 @@ jobs:
   crawl:
     runs-on: ubuntu-latest
     needs: [setup]
-    if: ${{ github.event.inputs.target_cafe == 'all' || github.event.inputs.target_cafe == '' || !github.event.inputs.target_cafe }}
     strategy:
       matrix:
-        cafe:
-          [starbucks, compose, mega, paik, ediya, twosome, coffeebean, hollys]
+        cafe: ${{ (github.event.inputs.target_cafe == 'all' || github.event.inputs.target_cafe == '' || !github.event.inputs.target_cafe) && fromJSON('["starbucks", "compose", "mega", "paik", "ediya", "twosome", "coffeebean", "hollys"]') || fromJSON(format('["{0}"]', github.event.inputs.target_cafe)) }}
       fail-fast: false # Don't cancel other jobs if one fails
       max-parallel: 4 # Limit concurrent crawlers to avoid rate limiting
 
@@ -77,6 +75,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
 
       - name: Restore cached dependencies
         uses: actions/cache/restore@v4
@@ -106,52 +116,14 @@ jobs:
       - name: Log crawl completion
         run: echo "✅ Crawl completed for ${{ matrix.cafe }}"
 
-  # Job 1b: Single cafe crawl (for manual dispatch)
-  crawl-single:
-    runs-on: ubuntu-latest
-    needs: [setup]
-    if: ${{ github.event.inputs.target_cafe != 'all' && github.event.inputs.target_cafe != '' && github.event.inputs.target_cafe }}
-
-    name: Crawl ${{ github.event.inputs.target_cafe }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Restore cached dependencies
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            subdomain/cupscore/node_modules
-            ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('subdomain/cupscore/pnpm-lock.yaml') }}
-
-      - name: Create crawler outputs directory
-        run: mkdir -p crawler-outputs
-        working-directory: ./subdomain/cupscore
-
-      - name: Run crawler for ${{ github.event.inputs.target_cafe }}
-        run: pnpm run crawl ${{ github.event.inputs.target_cafe }}
-        working-directory: ./subdomain/cupscore
-        env:
-          NODE_ENV: production
-
-      - name: Upload crawler output
-        uses: actions/upload-artifact@v4
-        with:
-          name: crawler-output-${{ github.event.inputs.target_cafe }}
-          path: subdomain/cupscore/crawler-outputs/${{ github.event.inputs.target_cafe }}-*.json
-          retention-days: 7
-
   # Job 2: Categorize products (runs after crawl completes)
   categorize:
     runs-on: ubuntu-latest
-    needs: [crawl, crawl-single]
-    if: ${{ always() && (needs.crawl.result == 'success' || needs.crawl-single.result == 'success' || needs.crawl.result == 'skipped' || needs.crawl-single.result == 'skipped') }}
+    needs: [crawl]
+    if: ${{ always() }}
     strategy:
       matrix:
-        cafe:
-          [starbucks, compose, mega, paik, ediya, twosome, coffeebean, hollys]
+        cafe: ${{ (github.event.inputs.target_cafe == 'all' || github.event.inputs.target_cafe == '' || !github.event.inputs.target_cafe) && fromJSON('["starbucks", "compose", "mega", "paik", "ediya", "twosome", "coffeebean", "hollys"]') || fromJSON(format('["{0}"]', github.event.inputs.target_cafe)) }}
       fail-fast: false # Don't cancel other jobs if one fails
       max-parallel: 4 # Limit concurrent categorization jobs
 
@@ -160,6 +132,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
 
       - name: Restore cached dependencies
         uses: actions/cache/restore@v4
@@ -175,6 +159,8 @@ jobs:
 
       - name: Download crawler output for ${{ matrix.cafe }}
         uses: actions/download-artifact@v4
+        continue-on-error: true
+        id: download_artifact
         with:
           name: crawler-output-${{ matrix.cafe }}
           path: subdomain/cupscore/crawler-outputs
@@ -182,12 +168,12 @@ jobs:
       - name: Check for cafe data
         id: check_data
         run: |
-          if ls crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
+          if [[ "${{ steps.download_artifact.outcome }}" == "success" ]] && ls crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
             echo "has_data=true" >> $GITHUB_OUTPUT
             echo "✅ Found data files for ${{ matrix.cafe }}"
           else
             echo "has_data=false" >> $GITHUB_OUTPUT
-            echo "⚠️ No data files found for ${{ matrix.cafe }}"
+            echo "⚠️ No data files found for ${{ matrix.cafe }} - crawl may have failed"
           fi
         working-directory: ./subdomain/cupscore
 
@@ -218,11 +204,10 @@ jobs:
   upload:
     runs-on: ubuntu-latest
     needs: [categorize]
-    if: ${{ always() && needs.categorize.result == 'success' }}
+    if: ${{ always() }}
     strategy:
       matrix:
-        cafe:
-          [starbucks, compose, mega, paik, ediya, twosome, coffeebean, hollys]
+        cafe: ${{ (github.event.inputs.target_cafe == 'all' || github.event.inputs.target_cafe == '' || !github.event.inputs.target_cafe) && fromJSON('["starbucks", "compose", "mega", "paik", "ediya", "twosome", "coffeebean", "hollys"]') || fromJSON(format('["{0}"]', github.event.inputs.target_cafe)) }}
       fail-fast: false # Don't cancel other jobs if one fails
       max-parallel: 2 # Limit concurrent uploads to avoid database overload
 
@@ -231,6 +216,18 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
 
       - name: Restore cached dependencies
         uses: actions/cache/restore@v4
@@ -246,6 +243,8 @@ jobs:
 
       - name: Download categorized output for ${{ matrix.cafe }}
         uses: actions/download-artifact@v4
+        continue-on-error: true
+        id: download_artifact
         with:
           name: categorized-output-${{ matrix.cafe }}
           path: subdomain/cupscore/crawler-outputs
@@ -253,12 +252,12 @@ jobs:
       - name: Check for cafe data
         id: check_data
         run: |
-          if ls crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
+          if [[ "${{ steps.download_artifact.outcome }}" == "success" ]] && ls crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
             echo "has_data=true" >> $GITHUB_OUTPUT
             echo "✅ Found data files for ${{ matrix.cafe }}"
           else
             echo "has_data=false" >> $GITHUB_OUTPUT
-            echo "⚠️ No data files found for ${{ matrix.cafe }}"
+            echo "⚠️ No data files found for ${{ matrix.cafe }} - crawl or categorization may have failed"
           fi
         working-directory: ./subdomain/cupscore
 
@@ -276,12 +275,12 @@ jobs:
 
       - name: Log skip message
         if: steps.check_data.outputs.has_data == 'false'
-        run: echo "⏭️ Skipped upload for ${{ matrix.cafe }} (no data)"
+        run: echo "⏭️ Skipped upload for ${{ matrix.cafe }} (no data - crawl or categorization may have failed)"
 
   # Job 4: Cleanup and notification
   cleanup:
     runs-on: ubuntu-latest
-    needs: [crawl, crawl-single, categorize, upload]
+    needs: [crawl, categorize, upload]
     if: ${{ always() }}
 
     name: Cleanup & Summary
@@ -292,13 +291,14 @@ jobs:
           echo "## Daily Data Sync Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Workflow Status:**" >> $GITHUB_STEP_SUMMARY
-          echo "- Crawl: ${{ needs.crawl.result || needs.crawl-single.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Crawl: ${{ needs.crawl.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Categorize: ${{ needs.categorize.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Upload: ${{ needs.upload.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Target:** ${{ github.event.inputs.target_cafe || 'all' }}" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "${{ needs.crawl.result }}" == "failure" || "${{ needs.crawl-single.result }}" == "failure" ]]; then
+          if [[ "${{ needs.crawl.result }}" == "failure" ]]; then
             echo "❌ Some crawl jobs failed" >> $GITHUB_STEP_SUMMARY
           fi
 
@@ -310,6 +310,6 @@ jobs:
             echo "❌ Some upload jobs failed" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if [[ "${{ needs.crawl.result }}" == "success" && "${{ needs.categorize.result }}" == "success" && "${{ needs.upload.result }}" == "success" ]] || [[ "${{ needs.crawl-single.result }}" == "success" && "${{ needs.categorize.result }}" == "success" && "${{ needs.upload.result }}" == "success" ]]; then
+          if [[ "${{ needs.crawl.result }}" == "success" && "${{ needs.categorize.result }}" == "success" && "${{ needs.upload.result }}" == "success" ]]; then
             echo "✅ All jobs completed successfully!" >> $GITHUB_STEP_SUMMARY
           fi
