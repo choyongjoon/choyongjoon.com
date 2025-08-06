@@ -3,6 +3,7 @@
 ## Subdomains
 
 - [Old blog](https://old-blog.choyongjoon.com)
+- [잔점](https://cupscore.choyongjoon.com)
 
 ## Tech stacks
 

@@ -5,7 +5,7 @@ export default function Home() {
         <h1 className="card-title">choyongjoon.com</h1>
         <p>Personal website exploring ideas</p>
         <ol>
-          <li className="mb-2 tracking-[-.01em]">
+          <li className="mb-2">
             <a
               className="link"
               href="https://old-blog.choyongjoon.com"
@@ -13,6 +13,16 @@ export default function Home() {
               target="_blank"
             >
               Old blog
+            </a>
+          </li>
+          <li className="mb-2">
+            <a
+              className="link"
+              href="https://cupscore.choyongjoon.com"
+              rel="noopener"
+              target="_blank"
+            >
+              잔점
             </a>
           </li>
         </ol>
