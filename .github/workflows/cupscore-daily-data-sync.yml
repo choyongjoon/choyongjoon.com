@@ -3,7 +3,7 @@ name: Daily Data Sync
 # Run daily at 9 AM KST (0 AM UTC) and allow manual trigger
 on:
   schedule:
-    - cron: '0 0 * * *'  # Daily at midnight UTC (9 AM KST)
+    - cron: '0 0 * * *' # Daily at midnight UTC (9 AM KST)
   workflow_dispatch:
     inputs:
       target_cafe:
@@ -29,53 +29,54 @@ jobs:
     if: ${{ github.event.inputs.target_cafe == 'all' || github.event.inputs.target_cafe == '' || !github.event.inputs.target_cafe }}
     strategy:
       matrix:
-        cafe: [starbucks, compose, mega, paik, ediya, twosome, coffeebean, hollys]
-      fail-fast: false  # Don't cancel other jobs if one fails
-      max-parallel: 4   # Limit concurrent crawlers to avoid rate limiting
-    
+        cafe:
+          [starbucks, compose, mega, paik, ediya, twosome, coffeebean, hollys]
+      fail-fast: false # Don't cancel other jobs if one fails
+      max-parallel: 4 # Limit concurrent crawlers to avoid rate limiting
+
     name: Crawl ${{ matrix.cafe }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
           cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
-          
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
-          
+
       - name: Install dependencies
         run: pnpm install
         working-directory: ./subdomain/cupscore
-        
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
         working-directory: ./subdomain/cupscore
-        
+
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
         working-directory: ./subdomain/cupscore
-        
+
       - name: Run crawler for ${{ matrix.cafe }}
         run: pnpm run crawl ${{ matrix.cafe }}
         working-directory: ./subdomain/cupscore
         env:
           NODE_ENV: production
-          
+
       - name: Upload crawler output
         uses: actions/upload-artifact@v4
         with:
           name: crawler-output-${{ matrix.cafe }}
           path: subdomain/cupscore/crawler-outputs/${{ matrix.cafe }}-*.json
           retention-days: 7
-          
+
       - name: Log crawl completion
         run: echo "✅ Crawl completed for ${{ matrix.cafe }}"
 
@@ -83,43 +84,43 @@ jobs:
   crawl-single:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.target_cafe != 'all' && github.event.inputs.target_cafe != '' && github.event.inputs.target_cafe }}
-    
+
     name: Crawl ${{ github.event.inputs.target_cafe }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
           cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
-          
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
-          
+
       - name: Install dependencies
         run: pnpm install
         working-directory: ./subdomain/cupscore
-        
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
         working-directory: ./subdomain/cupscore
-        
+
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
         working-directory: ./subdomain/cupscore
-        
+
       - name: Run crawler for ${{ github.event.inputs.target_cafe }}
         run: pnpm run crawl ${{ github.event.inputs.target_cafe }}
         working-directory: ./subdomain/cupscore
         env:
           NODE_ENV: production
-          
+
       - name: Upload crawler output
         uses: actions/upload-artifact@v4
         with:
@@ -132,57 +133,57 @@ jobs:
     runs-on: ubuntu-latest
     needs: [crawl, crawl-single]
     if: ${{ always() && (needs.crawl.result == 'success' || needs.crawl-single.result == 'success' || needs.crawl.result == 'skipped' || needs.crawl-single.result == 'skipped') }}
-    
+
     name: Categorize Products
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
           cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
-          
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
-          
+
       - name: Install dependencies
         run: pnpm install
         working-directory: ./subdomain/cupscore
-        
+
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
         working-directory: ./subdomain/cupscore
-        
+
       - name: Download all crawler outputs
         uses: actions/download-artifact@v4
         with:
           pattern: crawler-output-*
           path: subdomain/cupscore/crawler-outputs
           merge-multiple: true
-          
+
       - name: List downloaded files
         run: ls -la crawler-outputs/
         working-directory: ./subdomain/cupscore
-        
+
       - name: Run categorization
         run: pnpm run categorize
         working-directory: ./subdomain/cupscore
         env:
           NODE_ENV: production
-          
+
       - name: Upload categorized outputs
         uses: actions/upload-artifact@v4
         with:
           name: categorized-outputs
           path: subdomain/cupscore/crawler-outputs/*.json
           retention-days: 7
-          
+
       - name: Log categorization completion
         run: echo "✅ Categorization completed"
 
@@ -193,42 +194,43 @@ jobs:
     if: ${{ always() && needs.categorize.result == 'success' }}
     strategy:
       matrix:
-        cafe: [starbucks, compose, mega, paik, ediya, twosome, coffeebean, hollys]
-      fail-fast: false  # Don't cancel other jobs if one fails
-      max-parallel: 2   # Limit concurrent uploads to avoid database overload
-    
+        cafe:
+          [starbucks, compose, mega, paik, ediya, twosome, coffeebean, hollys]
+      fail-fast: false # Don't cancel other jobs if one fails
+      max-parallel: 2 # Limit concurrent uploads to avoid database overload
+
     name: Upload ${{ matrix.cafe }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
           cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
-          
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
-          
+
       - name: Install dependencies
         run: pnpm install
         working-directory: ./subdomain/cupscore
-        
+
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
         working-directory: ./subdomain/cupscore
-        
+
       - name: Download categorized outputs
         uses: actions/download-artifact@v4
         with:
           name: categorized-outputs
           path: subdomain/cupscore/crawler-outputs
-          
+
       - name: Check for cafe data
         id: check_data
         run: |
@@ -240,7 +242,7 @@ jobs:
             echo "⚠️ No data files found for ${{ matrix.cafe }}"
           fi
         working-directory: ./subdomain/cupscore
-          
+
       - name: Run upload for ${{ matrix.cafe }}
         if: steps.check_data.outputs.has_data == 'true'
         run: pnpm run upload ${{ matrix.cafe }}
@@ -248,11 +250,11 @@ jobs:
         env:
           NODE_ENV: production
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-          
+
       - name: Log upload completion
         if: steps.check_data.outputs.has_data == 'true'
         run: echo "✅ Upload completed for ${{ matrix.cafe }}"
-        
+
       - name: Log skip message
         if: steps.check_data.outputs.has_data == 'false'
         run: echo "⏭️ Skipped upload for ${{ matrix.cafe }} (no data)"
@@ -262,9 +264,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [crawl, crawl-single, categorize, upload]
     if: ${{ always() }}
-    
+
     name: Cleanup & Summary
-    
+
     steps:
       - name: Generate summary
         run: |
@@ -276,19 +278,19 @@ jobs:
           echo "- Upload: ${{ needs.upload.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
-          
+
           if [[ "${{ needs.crawl.result }}" == "failure" || "${{ needs.crawl-single.result }}" == "failure" ]]; then
             echo "❌ Some crawl jobs failed" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [[ "${{ needs.categorize.result }}" == "failure" ]]; then
             echo "❌ Categorization failed" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [[ "${{ needs.upload.result }}" == "failure" ]]; then
             echo "❌ Some upload jobs failed" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [[ "${{ needs.crawl.result }}" == "success" && "${{ needs.categorize.result }}" == "success" && "${{ needs.upload.result }}" == "success" ]] || [[ "${{ needs.crawl-single.result }}" == "success" && "${{ needs.categorize.result }}" == "success" && "${{ needs.upload.result }}" == "success" ]]; then
             echo "✅ All jobs completed successfully!" >> $GITHUB_STEP_SUMMARY
           fi
