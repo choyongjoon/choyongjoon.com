@@ -52,7 +52,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
         working-directory: ./subdomain/cupscore
 
-      - name: Cache node_modules
+      - name: Cache node_modules and Playwright
         uses: actions/cache/save@v4
         with:
           path: |
@@ -93,7 +93,7 @@ jobs:
         id: playwright_cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install dependencies
         run: pnpm install
