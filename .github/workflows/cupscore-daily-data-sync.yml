@@ -105,7 +105,7 @@ jobs:
         working-directory: ./subdomain/cupscore
 
       - name: Create crawler outputs directory
-        run: mkdir -p crawler-outputs
+        run: mkdir -p crawler/crawler-outputs
         working-directory: ./subdomain/cupscore
 
       - name: Run crawler for ${{ matrix.cafe }}
@@ -113,6 +113,19 @@ jobs:
         working-directory: ./subdomain/cupscore
         env:
           NODE_ENV: production
+
+      - name: Check crawler output exists
+        run: |
+          if ls crawler/crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
+            echo "✅ Crawler output found for ${{ matrix.cafe }}"
+            ls -la crawler/crawler-outputs/${{ matrix.cafe }}-*.json
+          else
+            echo "❌ No crawler output found for ${{ matrix.cafe }}"
+            echo "Expected files matching: crawler/crawler-outputs/${{ matrix.cafe }}-*.json"
+            ls -la crawler/crawler-outputs/ || echo "crawler-outputs directory doesn't exist"
+            exit 1
+          fi
+        working-directory: ./subdomain/cupscore
 
       - name: Upload crawler output
         uses: actions/upload-artifact@v4
