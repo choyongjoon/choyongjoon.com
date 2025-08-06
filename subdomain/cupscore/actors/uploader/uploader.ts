@@ -131,11 +131,17 @@ class ProductUploader {
     dryRun: boolean,
     downloadImages: boolean
   ): Promise<UploadResult> {
+    const uploadSecret = process.env.CONVEX_UPLOAD_SECRET;
+    if (!uploadSecret) {
+      throw new Error('CONVEX_UPLOAD_SECRET environment variable is required');
+    }
+
     return await this.client.mutation(api.dataUploader.uploadProductsFromJson, {
       products,
       cafeSlug,
       dryRun,
       downloadImages,
+      uploadSecret,
     });
   }
 

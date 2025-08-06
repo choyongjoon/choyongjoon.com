@@ -304,8 +304,7 @@ jobs:
         run: pnpm run upload ${{ matrix.cafe }}
         working-directory: ./subdomain/cupscore
         env:
-          NODE_ENV: production
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_UPLOAD_SECRET: ${{ secrets.CONVEX_UPLOAD_SECRET }}
 
       - name: Log upload completion
         if: steps.check_data.outputs.has_data == 'true'

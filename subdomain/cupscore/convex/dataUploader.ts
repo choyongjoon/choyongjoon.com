@@ -70,11 +70,18 @@ export const uploadProductsFromJson = mutation({
     cafeSlug: v.string(),
     dryRun: v.optional(v.boolean()),
     downloadImages: v.optional(v.boolean()),
+    uploadSecret: v.string(),
   },
   handler: async (
     ctx,
-    { products, cafeSlug, dryRun = false, downloadImages = false }
+    { products, cafeSlug, dryRun = false, downloadImages = false, uploadSecret }
   ) => {
+    // Environment-based authentication
+    const allowedSecret = process.env.CONVEX_UPLOAD_SECRET;
+    if (!allowedSecret || uploadSecret !== allowedSecret) {
+      throw new Error('Unauthorized: Invalid upload secret');
+    }
+
     const startTime = Date.now();
 
     // Find or create cafe
@@ -148,154 +155,5 @@ export const uploadProductsFromJson = mutation({
       ...results,
       message,
     };
-  },
-});
-
-export const getUploadStats = mutation({
-  args: {
-    cafeSlug: v.string(),
-    daysBack: v.optional(v.number()),
-  },
-  handler: async (ctx, { cafeSlug, daysBack = 7 }) => {
-    const cafe = await ctx.db
-      .query('cafes')
-      .withIndex('by_slug', (q) => q.eq('slug', cafeSlug))
-      .first();
-
-    if (!cafe) {
-      throw new Error(`Cafe not found: ${cafeSlug}`);
-    }
-
-    const cutoffTime = Date.now() - daysBack * 24 * 60 * 60 * 1000;
-
-    const products = await ctx.db
-      .query('products')
-      .withIndex('by_cafe', (q) => q.eq('cafeId', cafe._id))
-      .collect();
-
-    const recentlyAdded = products.filter((p) => p.addedAt > cutoffTime);
-    const recentlyUpdated = products.filter(
-      (p) => p.updatedAt > cutoffTime && p.addedAt <= cutoffTime
-    );
-
-    return {
-      total: products.length,
-      recentlyAdded: recentlyAdded.length,
-      recentlyUpdated: recentlyUpdated.length,
-      categories: [...new Set(products.map((p) => p.category))].length,
-      withImages: products.filter((p) => p.externalImageUrl).length,
-      withPrices: products.filter((p) => p.price).length,
-    };
-  },
-});
-
-export const downloadAndStoreImage = mutation({
-  args: {
-    imageUrl: v.string(),
-    productId: v.id('products'),
-  },
-  handler: async (ctx, { imageUrl, productId }) => {
-    try {
-      // Fetch the image from the external URL
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
-
-      // Get the image data
-      const imageBuffer = await response.arrayBuffer();
-      const imageBlob = new Blob([imageBuffer]);
-
-      // Generate upload URL and store the image
-      const uploadUrl = await ctx.storage.generateUploadUrl();
-
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': response.headers.get('content-type') || 'image/jpeg',
-        },
-        body: imageBlob,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(`Failed to upload image: ${uploadResponse.statusText}`);
-      }
-
-      const { storageId } = await uploadResponse.json();
-
-      // Update the product with the storage ID
-      const now = Date.now();
-      await ctx.db.patch(productId, {
-        imageStorageId: storageId,
-        updatedAt: now,
-      });
-
-      return { success: true, storageId };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  },
-});
-
-export const bulkDownloadImages = mutation({
-  args: {
-    cafeSlug: v.string(),
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx, { cafeSlug, limit = 10 }) => {
-    const cafe = await ctx.db
-      .query('cafes')
-      .withIndex('by_slug', (q) => q.eq('slug', cafeSlug))
-      .first();
-
-    if (!cafe) {
-      throw new Error(`Cafe not found: ${cafeSlug}`);
-    }
-
-    // Find products with external image URLs but no storage ID
-    const products = await ctx.db
-      .query('products')
-      .withIndex('by_cafe', (q) => q.eq('cafeId', cafe._id))
-      .collect();
-
-    const productsToProcess = products
-      .filter((p) => p.externalImageUrl && !p.imageStorageId)
-      .slice(0, limit);
-
-    const results = {
-      processed: 0,
-      success: 0,
-      failed: 0,
-      errors: [] as string[],
-    };
-
-    for (const product of productsToProcess) {
-      results.processed++;
-
-      try {
-        const result = await ctx.runMutation(
-          api.dataUploader.downloadAndStoreImage,
-          {
-            imageUrl: product.externalImageUrl || '',
-            productId: product._id,
-          }
-        );
-
-        if (result.success) {
-          results.success++;
-        } else {
-          results.failed++;
-          results.errors.push(`${product.name}: ${result.error}`);
-        }
-      } catch (error) {
-        results.failed++;
-        results.errors.push(`${product.name}: ${error}`);
-      }
-    }
-
-    return results;
   },
 });
