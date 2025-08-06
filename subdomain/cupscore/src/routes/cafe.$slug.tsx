@@ -44,7 +44,7 @@ function CafePage() {
   const categories = getOrderedCategories(availableCategories as string[]);
   const filteredProducts =
     selectedCategory === 'all'
-      ? products?.slice(0, 10)
+      ? products
       : products?.filter((p) => p.category === selectedCategory);
 
   if (!cafe) {
