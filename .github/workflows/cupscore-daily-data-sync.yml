@@ -44,6 +44,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
+          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
           
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -52,15 +53,19 @@ jobs:
           
       - name: Install dependencies
         run: pnpm install
+        working-directory: ./subdomain/cupscore
         
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
+        working-directory: ./subdomain/cupscore
         
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
+        working-directory: ./subdomain/cupscore
         
       - name: Run crawler for ${{ matrix.cafe }}
         run: pnpm run crawl ${{ matrix.cafe }}
+        working-directory: ./subdomain/cupscore
         env:
           NODE_ENV: production
           
@@ -68,7 +73,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: crawler-output-${{ matrix.cafe }}
-          path: crawler-outputs/${{ matrix.cafe }}-*.json
+          path: subdomain/cupscore/crawler-outputs/${{ matrix.cafe }}-*.json
           retention-days: 7
           
       - name: Log crawl completion
@@ -90,6 +95,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
+          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
           
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -98,15 +104,19 @@ jobs:
           
       - name: Install dependencies
         run: pnpm install
+        working-directory: ./subdomain/cupscore
         
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
+        working-directory: ./subdomain/cupscore
         
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
+        working-directory: ./subdomain/cupscore
         
       - name: Run crawler for ${{ github.event.inputs.target_cafe }}
         run: pnpm run crawl ${{ github.event.inputs.target_cafe }}
+        working-directory: ./subdomain/cupscore
         env:
           NODE_ENV: production
           
@@ -114,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: crawler-output-${{ github.event.inputs.target_cafe }}
-          path: crawler-outputs/${{ github.event.inputs.target_cafe }}-*.json
+          path: subdomain/cupscore/crawler-outputs/${{ github.event.inputs.target_cafe }}-*.json
           retention-days: 7
 
   # Job 2: Categorize products (runs after crawl completes)
@@ -134,6 +144,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
+          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
           
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -142,22 +153,26 @@ jobs:
           
       - name: Install dependencies
         run: pnpm install
+        working-directory: ./subdomain/cupscore
         
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
+        working-directory: ./subdomain/cupscore
         
       - name: Download all crawler outputs
         uses: actions/download-artifact@v4
         with:
           pattern: crawler-output-*
-          path: crawler-outputs
+          path: subdomain/cupscore/crawler-outputs
           merge-multiple: true
           
       - name: List downloaded files
         run: ls -la crawler-outputs/
+        working-directory: ./subdomain/cupscore
         
       - name: Run categorization
         run: pnpm run categorize
+        working-directory: ./subdomain/cupscore
         env:
           NODE_ENV: production
           
@@ -165,7 +180,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: categorized-outputs
-          path: crawler-outputs/*.json
+          path: subdomain/cupscore/crawler-outputs/*.json
           retention-days: 7
           
       - name: Log categorization completion
@@ -193,6 +208,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
+          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
           
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -201,15 +217,17 @@ jobs:
           
       - name: Install dependencies
         run: pnpm install
+        working-directory: ./subdomain/cupscore
         
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
+        working-directory: ./subdomain/cupscore
         
       - name: Download categorized outputs
         uses: actions/download-artifact@v4
         with:
           name: categorized-outputs
-          path: crawler-outputs
+          path: subdomain/cupscore/crawler-outputs
           
       - name: Check for cafe data
         id: check_data
@@ -221,10 +239,12 @@ jobs:
             echo "has_data=false" >> $GITHUB_OUTPUT
             echo "⚠️ No data files found for ${{ matrix.cafe }}"
           fi
+        working-directory: ./subdomain/cupscore
           
       - name: Run upload for ${{ matrix.cafe }}
         if: steps.check_data.outputs.has_data == 'true'
         run: pnpm run upload ${{ matrix.cafe }}
+        working-directory: ./subdomain/cupscore
         env:
           NODE_ENV: production
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
