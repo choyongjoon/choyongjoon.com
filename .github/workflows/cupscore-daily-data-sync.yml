@@ -1,4 +1,4 @@
-name: Daily Data Sync
+name: Cupscore / Daily Data Sync
 
 # Run daily at 9 AM KST (0 AM UTC) and allow manual trigger
 on:
