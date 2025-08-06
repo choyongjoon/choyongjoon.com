@@ -23,19 +23,11 @@ on:
         default: 'all'
 
 jobs:
-  # Job 1: Crawl data for each cafe
-  crawl:
+  # Job 0: Setup dependencies and browsers (shared across all jobs)
+  setup:
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.target_cafe == 'all' || github.event.inputs.target_cafe == '' || !github.event.inputs.target_cafe }}
-    strategy:
-      matrix:
-        cafe:
-          [starbucks, compose, mega, paik, ediya, twosome, coffeebean, hollys]
-      fail-fast: false # Don't cancel other jobs if one fails
-      max-parallel: 4 # Limit concurrent crawlers to avoid rate limiting
-
-    name: Crawl ${{ matrix.cafe }}
-
+    name: Setup Dependencies & Browsers
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -59,6 +51,40 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
         working-directory: ./subdomain/cupscore
+
+      - name: Cache node_modules
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            subdomain/cupscore/node_modules
+            ~/.cache/ms-playwright
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('subdomain/cupscore/pnpm-lock.yaml') }}
+
+  # Job 1: Crawl data for each cafe
+  crawl:
+    runs-on: ubuntu-latest
+    needs: [setup]
+    if: ${{ github.event.inputs.target_cafe == 'all' || github.event.inputs.target_cafe == '' || !github.event.inputs.target_cafe }}
+    strategy:
+      matrix:
+        cafe:
+          [starbucks, compose, mega, paik, ediya, twosome, coffeebean, hollys]
+      fail-fast: false # Don't cancel other jobs if one fails
+      max-parallel: 4 # Limit concurrent crawlers to avoid rate limiting
+
+    name: Crawl ${{ matrix.cafe }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Restore cached dependencies
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            subdomain/cupscore/node_modules
+            ~/.cache/ms-playwright
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('subdomain/cupscore/pnpm-lock.yaml') }}
 
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
@@ -83,6 +109,7 @@ jobs:
   # Job 1b: Single cafe crawl (for manual dispatch)
   crawl-single:
     runs-on: ubuntu-latest
+    needs: [setup]
     if: ${{ github.event.inputs.target_cafe != 'all' && github.event.inputs.target_cafe != '' && github.event.inputs.target_cafe }}
 
     name: Crawl ${{ github.event.inputs.target_cafe }}
@@ -91,25 +118,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Restore cached dependencies
+        uses: actions/cache/restore@v4
         with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
-
-      - name: Install dependencies
-        run: pnpm install
-        working-directory: ./subdomain/cupscore
-
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-        working-directory: ./subdomain/cupscore
+          path: |
+            subdomain/cupscore/node_modules
+            ~/.cache/ms-playwright
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('subdomain/cupscore/pnpm-lock.yaml') }}
 
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
@@ -133,59 +148,71 @@ jobs:
     runs-on: ubuntu-latest
     needs: [crawl, crawl-single]
     if: ${{ always() && (needs.crawl.result == 'success' || needs.crawl-single.result == 'success' || needs.crawl.result == 'skipped' || needs.crawl-single.result == 'skipped') }}
+    strategy:
+      matrix:
+        cafe:
+          [starbucks, compose, mega, paik, ediya, twosome, coffeebean, hollys]
+      fail-fast: false # Don't cancel other jobs if one fails
+      max-parallel: 4 # Limit concurrent categorization jobs
 
-    name: Categorize Products
+    name: Categorize ${{ matrix.cafe }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Restore cached dependencies
+        uses: actions/cache/restore@v4
         with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
-
-      - name: Install dependencies
-        run: pnpm install
-        working-directory: ./subdomain/cupscore
+          path: |
+            subdomain/cupscore/node_modules
+            ~/.cache/ms-playwright
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('subdomain/cupscore/pnpm-lock.yaml') }}
 
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
         working-directory: ./subdomain/cupscore
 
-      - name: Download all crawler outputs
+      - name: Download crawler output for ${{ matrix.cafe }}
         uses: actions/download-artifact@v4
         with:
-          pattern: crawler-output-*
+          name: crawler-output-${{ matrix.cafe }}
           path: subdomain/cupscore/crawler-outputs
-          merge-multiple: true
 
-      - name: List downloaded files
-        run: ls -la crawler-outputs/
+      - name: Check for cafe data
+        id: check_data
+        run: |
+          if ls crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
+            echo "has_data=true" >> $GITHUB_OUTPUT
+            echo "✅ Found data files for ${{ matrix.cafe }}"
+          else
+            echo "has_data=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No data files found for ${{ matrix.cafe }}"
+          fi
         working-directory: ./subdomain/cupscore
 
-      - name: Run categorization
-        run: pnpm run categorize
+      - name: Run categorization for ${{ matrix.cafe }}
+        if: steps.check_data.outputs.has_data == 'true'
+        run: pnpm run categorize ${{ matrix.cafe }}
         working-directory: ./subdomain/cupscore
         env:
           NODE_ENV: production
 
-      - name: Upload categorized outputs
+      - name: Upload categorized output for ${{ matrix.cafe }}
+        if: steps.check_data.outputs.has_data == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: categorized-outputs
-          path: subdomain/cupscore/crawler-outputs/*.json
+          name: categorized-output-${{ matrix.cafe }}
+          path: subdomain/cupscore/crawler-outputs/${{ matrix.cafe }}-*.json
           retention-days: 7
 
       - name: Log categorization completion
-        run: echo "✅ Categorization completed"
+        if: steps.check_data.outputs.has_data == 'true'
+        run: echo "✅ Categorization completed for ${{ matrix.cafe }}"
+
+      - name: Log skip message
+        if: steps.check_data.outputs.has_data == 'false'
+        run: echo "⏭️ Skipped categorization for ${{ matrix.cafe }} (no data)"
 
   # Job 3: Upload to database (runs after categorize completes)
   upload:
@@ -205,30 +232,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - name: Restore cached dependencies
+        uses: actions/cache/restore@v4
         with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-          cache-dependency-path: 'subdomain/cupscore/pnpm-lock.yaml'
-
-      - name: Install dependencies
-        run: pnpm install
-        working-directory: ./subdomain/cupscore
+          path: |
+            subdomain/cupscore/node_modules
+            ~/.cache/ms-playwright
+          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('subdomain/cupscore/pnpm-lock.yaml') }}
 
       - name: Create crawler outputs directory
         run: mkdir -p crawler-outputs
         working-directory: ./subdomain/cupscore
 
-      - name: Download categorized outputs
+      - name: Download categorized output for ${{ matrix.cafe }}
         uses: actions/download-artifact@v4
         with:
-          name: categorized-outputs
+          name: categorized-output-${{ matrix.cafe }}
           path: subdomain/cupscore/crawler-outputs
 
       - name: Check for cafe data
