@@ -88,22 +88,19 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'pnpm-lock.yaml'
 
-      - name: Restore cached dependencies
+      - name: Restore Playwright browsers cache
         uses: actions/cache/restore@v4
-        id: cache
+        id: playwright_cache
         with:
-          path: |
-            node_modules
-            ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
-      - name: Install dependencies (fallback)
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Install dependencies
         run: pnpm install
         working-directory: ./subdomain/cupscore
 
-      - name: Install Playwright browsers (fallback)
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Install Playwright browsers
+        if: steps.playwright_cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
         working-directory: ./subdomain/cupscore
 
@@ -156,17 +153,7 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'pnpm-lock.yaml'
 
-      - name: Restore cached dependencies
-        uses: actions/cache/restore@v4
-        id: cache
-        with:
-          path: |
-            node_modules
-            ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-
-      - name: Install dependencies (fallback)
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Install dependencies
         run: pnpm install
         working-directory: ./subdomain/cupscore
 
@@ -246,17 +233,7 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: 'pnpm-lock.yaml'
 
-      - name: Restore cached dependencies
-        uses: actions/cache/restore@v4
-        id: cache
-        with:
-          path: |
-            node_modules
-            ~/.cache/ms-playwright
-          key: cupscore-deps-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-
-      - name: Install dependencies (fallback)
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Install dependencies
         run: pnpm install
         working-directory: ./subdomain/cupscore
 
