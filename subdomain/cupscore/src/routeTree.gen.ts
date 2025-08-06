@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductShortIdRouteImport } from './routes/product.$shortId'
 import { Route as CafeSlugRouteImport } from './routes/cafe.$slug'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/cafe/$slug': typeof CafeSlugRoute
   '/product/$shortId': typeof ProductShortIdRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/cafe/$slug': typeof CafeSlugRoute
   '/product/$shortId': typeof ProductShortIdRoute
 }
@@ -60,19 +68,33 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
   '/cafe/$slug': typeof CafeSlugRoute
   '/product/$shortId': typeof ProductShortIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/profile' | '/search' | '/cafe/$slug' | '/product/$shortId'
+  fullPaths:
+    | '/'
+    | '/profile'
+    | '/search'
+    | '/settings'
+    | '/cafe/$slug'
+    | '/product/$shortId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/profile' | '/search' | '/cafe/$slug' | '/product/$shortId'
+  to:
+    | '/'
+    | '/profile'
+    | '/search'
+    | '/settings'
+    | '/cafe/$slug'
+    | '/product/$shortId'
   id:
     | '__root__'
     | '/'
     | '/profile'
     | '/search'
+    | '/settings'
     | '/cafe/$slug'
     | '/product/$shortId'
   fileRoutesById: FileRoutesById
@@ -81,12 +103,20 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
+  SettingsRoute: typeof SettingsRoute
   CafeSlugRoute: typeof CafeSlugRoute
   ProductShortIdRoute: typeof ProductShortIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search': {
       id: '/search'
       path: '/search'
@@ -129,6 +159,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
+  SettingsRoute: SettingsRoute,
   CafeSlugRoute: CafeSlugRoute,
   ProductShortIdRoute: ProductShortIdRoute,
 }

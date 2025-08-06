@@ -1,17 +1,27 @@
-import { useUser } from '@clerk/tanstack-react-start';
+import { SignOutButton } from '@clerk/tanstack-react-start';
 import { convexQuery } from '@convex-dev/react-query';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { AuthWrapper } from '~/components/auth/AuthWrapper';
 import { MyReview } from '~/components/reviews/MyReview';
 import { UserRatingHistogram } from '~/components/reviews/UserRatingHistogram';
 import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
 export const Route = createFileRoute('/profile')({
-  component: ProfilePage,
+  component: AuthenticatedProfilePage,
 });
 
+function AuthenticatedProfilePage() {
+  return (
+    <AuthWrapper>
+      <ProfilePage />
+    </AuthWrapper>
+  );
+}
+
 function ProfilePage() {
-  const { user, isLoaded } = useUser();
+  const { data: currentUser } = useQuery(convexQuery(api.users.current, {}));
 
   // Get user's reviews
   const {
@@ -20,42 +30,26 @@ function ProfilePage() {
     error: reviewsError,
   } = useQuery({
     ...convexQuery(api.reviews.getUserReviews, {
-      userId: user?.id || '',
+      userId: currentUser?._id || '',
     }),
-    enabled: !!user?.id,
+    enabled: !!currentUser?._id,
   });
 
   // Get user's rating statistics
   const { data: userStats, isLoading: statsLoading } = useQuery({
     ...convexQuery(api.reviews.getUserStats, {
-      userId: user?.id || '',
+      userId: currentUser?._id || '',
     }),
-    enabled: !!user?.id,
+    enabled: !!currentUser?._id,
   });
 
-  if (!isLoaded) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="loading loading-spinner loading-lg" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="mb-4 font-bold text-2xl">로그인이 필요합니다</h1>
-          <p className="mb-6 text-base-content/70">
-            프로필을 보려면 로그인해주세요.
-          </p>
-          <Link className="btn btn-primary" to="/">
-            홈으로 가기
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // Get current user's profile image URL from Convex storage
+  const { data: currentUserImageUrl } = useQuery({
+    ...convexQuery(api.users.getImageUrl, {
+      storageId: currentUser?.imageStorageId as Id<'_storage'>,
+    }),
+    enabled: !!currentUser?.imageStorageId,
+  });
 
   const isLoading = reviewsLoading || statsLoading;
 
@@ -65,26 +59,36 @@ function ProfilePage() {
       <div className="card mb-6 bg-base-100 shadow-md">
         <div className="card-body">
           <div className="flex items-center gap-4">
-            {user.imageUrl && (
+            {currentUserImageUrl && (
               <div className="avatar">
                 <div className="h-16 w-16 rounded-full">
                   <img
-                    alt={user.fullName || '프로필'}
+                    alt={currentUser?.name || '프로필'}
                     className="h-full w-full object-cover"
-                    src={user.imageUrl}
+                    src={currentUserImageUrl}
                   />
                 </div>
               </div>
             )}
             <div className="flex-1">
               <h1 className="font-bold text-2xl">
-                {user.fullName || user.firstName || '사용자'}
+                {currentUser?.name || '사용자'}
               </h1>
-              {user.primaryEmailAddress && (
-                <p className="text-base-content/70">
-                  {user.primaryEmailAddress.emailAddress}
+              {currentUser?.handle && (
+                <p className="text-base-content/60 text-sm">
+                  @{currentUser.handle}
                 </p>
               )}
+            </div>
+            <div className="flex gap-2">
+              <Link className="btn btn-outline btn-sm" to="/settings">
+                프로필 수정
+              </Link>
+              <SignOutButton>
+                <button className="btn btn-ghost btn-sm" type="button">
+                  로그아웃
+                </button>
+              </SignOutButton>
             </div>
           </div>
         </div>

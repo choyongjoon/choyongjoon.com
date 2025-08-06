@@ -51,7 +51,13 @@ export default defineSchema({
     .index('by_created_at', ['createdAt']),
   users: defineTable({
     name: v.string(),
+    handle: v.string(),
+    imageStorageId: v.optional(v.id('_storage')),
+    hasCompletedSetup: v.optional(v.boolean()), // Track if user has completed initial setup
     // this the Clerk ID, stored in the subject JWT field
     externalId: v.string(),
-  }).index('byExternalId', ['externalId']),
+  })
+    .index('byExternalId', ['externalId'])
+    .index('byName', ['name'])
+    .index('byHandle', ['handle']),
 });

@@ -1,25 +1,43 @@
 /// <reference types="vite/client" />
 
 import { ClerkProvider, useAuth } from '@clerk/tanstack-react-start';
+import { getAuth } from '@clerk/tanstack-react-start/server';
+import type { ConvexQueryClient } from '@convex-dev/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import {
   createRootRouteWithContext,
   HeadContent,
-  Scripts,
+  Outlet,
+  useRouteContext,
 } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { ConvexReactClient } from 'convex/react';
+import { createServerFn, Scripts } from '@tanstack/react-start';
+import { getWebRequest } from '@tanstack/react-start/server';
+import type { ConvexReactClient } from 'convex/react';
 import { ConvexProviderWithClerk } from 'convex/react-clerk';
 import { PostHogProvider } from 'posthog-js/react';
 import type * as React from 'react';
-import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary';
+import { NewUserRedirect } from '~/components/auth/NewUserRedirect';
+import { DefaultCatchBoundary } from '~/components/DefaultCatchBoundary.js';
 import { NavBar } from '~/components/NavBar';
-import { NotFound } from '~/components/NotFound';
+import { NotFound } from '~/components/NotFound.js';
 import appCss from '~/styles/app.css?url';
 import { seo } from '~/utils/seo';
 
+const fetchClerkAuth = createServerFn({ method: 'GET' }).handler(async () => {
+  const auth = await getAuth(getWebRequest());
+  const token = await auth.getToken({ template: 'convex' });
+
+  return {
+    userId: auth.userId,
+    token,
+  };
+});
+
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
+  convexClient: ConvexReactClient;
+  convexQueryClient: ConvexQueryClient;
 }>()({
   head: () => ({
     meta: [
@@ -58,14 +76,28 @@ export const Route = createRootRouteWithContext<{
       { rel: 'icon', href: '/favicon.ico' },
     ],
   }),
+  beforeLoad: async (ctx) => {
+    const auth = await fetchClerkAuth();
+    const { userId, token } = auth;
+
+    // During SSR only (the only time serverHttpClient exists),
+    // set the Clerk auth token to make HTTP queries with.
+    if (token) {
+      ctx.context.convexQueryClient.serverHttpClient?.setAuth(token);
+    }
+
+    return {
+      userId,
+      token,
+    };
+  },
   errorComponent: DefaultCatchBoundary,
   notFoundComponent: () => <NotFound />,
-  shellComponent: RootDocument,
+  component: RootComponent,
 });
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
-
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootComponent() {
+  const context = useRouteContext({ from: Route.id });
   return (
     <PostHogProvider
       apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
@@ -77,20 +109,31 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       }}
     >
       <ClerkProvider>
-        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-          <html lang="ko">
-            <head>
-              <HeadContent />
-            </head>
-            <body>
-              <NavBar />
-              {children}
-              <TanStackRouterDevtools position="bottom-right" />
-              <Scripts />
-            </body>
-          </html>
+        <ConvexProviderWithClerk
+          client={context.convexClient}
+          useAuth={useAuth}
+        >
+          <RootDocument>
+            <Outlet />
+          </RootDocument>
         </ConvexProviderWithClerk>
       </ClerkProvider>
     </PostHogProvider>
+  );
+}
+
+function RootDocument({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="ko">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        <NavBar />
+        <NewUserRedirect>{children}</NewUserRedirect>
+        <TanStackRouterDevtools position="bottom-right" />
+        <Scripts />
+      </body>
+    </html>
   );
 }

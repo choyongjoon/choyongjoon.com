@@ -1,4 +1,4 @@
-import { SignInButton, UserButton } from '@clerk/tanstack-react-start';
+import { SignInButton } from '@clerk/tanstack-react-start';
 import { Link } from '@tanstack/react-router';
 import { Authenticated, Unauthenticated } from 'convex/react';
 import { BookmarkIcon, SearchIcon, UserIcon } from './icons';
@@ -55,10 +55,9 @@ export function NavBar() {
           <SearchIcon aria-label="Search" />
         </Link>
         <Authenticated>
-          <Link className="btn btn-ghost btn-circle mr-2" to="/profile">
+          <Link className="btn btn-ghost btn-circle ml-2" to="/profile">
             <BookmarkIcon />
           </Link>
-          <UserButton />
         </Authenticated>
         <Unauthenticated>
           <SignInButton>

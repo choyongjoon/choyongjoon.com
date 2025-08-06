@@ -1,4 +1,3 @@
-import { useUser } from '@clerk/tanstack-react-start';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Id } from 'convex/_generated/dataModel';
@@ -17,7 +16,7 @@ export function ReviewForm({
   onSuccess,
   onCancel,
 }: ReviewFormProps) {
-  const { user } = useUser();
+  const { data: currentUser } = useQuery(convexQuery(api.users.current, {}));
   const queryClient = useQueryClient();
   const [rating, setRating] = useState<number>(0);
   const [text, setText] = useState('');
@@ -30,9 +29,9 @@ export function ReviewForm({
   const { data: existingReview } = useQuery({
     ...convexQuery(api.reviews.getUserReview, {
       productId,
-      userId: user?.id || '',
+      userId: currentUser?._id || '',
     }),
-    enabled: !!user?.id,
+    enabled: !!currentUser?._id,
   });
 
   // Initialize form with existing review data
@@ -101,7 +100,7 @@ export function ReviewForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user) {
+    if (!currentUser) {
       alert('평가를 작성하려면 로그인이 필요합니다.');
       return;
     }
@@ -136,7 +135,7 @@ export function ReviewForm({
       // Submit review
       await submitReviewMutation.mutateAsync({
         productId,
-        userId: user.id,
+        userId: currentUser._id,
         rating,
         text: text.trim() || undefined,
         imageStorageIds:
@@ -149,7 +148,7 @@ export function ReviewForm({
     }
   };
 
-  if (!user) {
+  if (!currentUser) {
     return (
       <div className="card bg-base-100 shadow-md">
         <div className="card-body text-center">

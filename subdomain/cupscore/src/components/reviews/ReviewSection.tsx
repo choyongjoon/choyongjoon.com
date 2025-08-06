@@ -1,4 +1,3 @@
-import { useUser } from '@clerk/tanstack-react-start';
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Id } from 'convex/_generated/dataModel';
@@ -12,7 +11,7 @@ interface ReviewSectionProps {
 }
 
 export function ReviewSection({ productId }: ReviewSectionProps) {
-  const { user } = useUser();
+  const { data: currentUser } = useQuery(convexQuery(api.users.current, {}));
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [_editingReview, setEditingReview] = useState(false);
@@ -31,9 +30,9 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
   const { data: userReview } = useQuery({
     ...convexQuery(api.reviews.getUserReview, {
       productId,
-      userId: user?.id || '',
+      userId: currentUser?._id || '',
     }),
-    enabled: !!user?.id,
+    enabled: !!currentUser?._id,
   });
 
   // Delete review mutation
@@ -45,7 +44,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
   });
 
   const handleWriteReview = () => {
-    if (!user) {
+    if (!currentUser) {
       alert('평가를 작성하려면 로그인이 필요합니다.');
       return;
     }
@@ -70,7 +69,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
   };
 
   const handleDeleteReview = async (reviewId: Id<'reviews'>) => {
-    if (!user) {
+    if (!currentUser) {
       alert('평가를 삭제하려면 로그인이 필요합니다.');
       return;
     }
@@ -82,7 +81,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
     try {
       await deleteReviewMutation.mutateAsync({
         reviewId,
-        userId: user.id,
+        userId: currentUser._id,
       });
     } catch {
       alert('평가 삭제에 실패했습니다. 다시 시도해주세요.');
@@ -99,7 +98,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
           평가 ({reviewStats?.totalReviews || 0})
         </h3>
 
-        {user && !showForm && (
+        {currentUser && !showForm && (
           <div className="flex gap-2">
             {hasUserReview ? (
               <button
@@ -136,14 +135,18 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
         <div className="space-y-4">
           {reviews.map((review) => (
             <ReviewCard
-              currentUserId={user?.id}
+              currentUserId={currentUser?._id}
               key={review._id}
               onDelete={
-                review.userId === user?.id
+                review.userId === currentUser?._id
                   ? () => handleDeleteReview(review._id)
                   : undefined
               }
-              onEdit={review.userId === user?.id ? handleEditReview : undefined}
+              onEdit={
+                review.userId === currentUser?._id
+                  ? handleEditReview
+                  : undefined
+              }
               review={review}
             />
           ))}
@@ -158,7 +161,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
               <p className="mb-4 text-base-content/60">
                 이 상품에 대한 첫 번째 평가를 작성해보세요!
               </p>
-              {user && (
+              {currentUser && (
                 <button
                   className="btn btn-primary"
                   onClick={handleWriteReview}
