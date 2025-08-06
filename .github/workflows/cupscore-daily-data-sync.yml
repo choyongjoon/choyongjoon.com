@@ -118,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: crawler-output-${{ matrix.cafe }}
-          path: subdomain/cupscore/crawler-outputs/${{ matrix.cafe }}-*.json
+          path: subdomain/cupscore/crawler/crawler-outputs/${{ matrix.cafe }}-*.json
           retention-days: 7
 
       - name: Log crawl completion
@@ -167,12 +167,12 @@ jobs:
         id: download_artifact
         with:
           name: crawler-output-${{ matrix.cafe }}
-          path: subdomain/cupscore/crawler-outputs
+          path: subdomain/cupscore/crawler/crawler-outputs
 
       - name: Check for cafe data
         id: check_data
         run: |
-          if [[ "${{ steps.download_artifact.outcome }}" == "success" ]] && ls crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
+          if [[ "${{ steps.download_artifact.outcome }}" == "success" ]] && ls crawler/crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
             echo "has_data=true" >> $GITHUB_OUTPUT
             echo "✅ Found data files for ${{ matrix.cafe }}"
           else
@@ -193,7 +193,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: categorized-output-${{ matrix.cafe }}
-          path: subdomain/cupscore/crawler-outputs/${{ matrix.cafe }}-*.json
+          path: subdomain/cupscore/crawler/crawler-outputs/${{ matrix.cafe }}-*.json
           retention-days: 7
 
       - name: Log categorization completion
@@ -247,12 +247,12 @@ jobs:
         id: download_artifact
         with:
           name: categorized-output-${{ matrix.cafe }}
-          path: subdomain/cupscore/crawler-outputs
+          path: subdomain/cupscore/crawler/crawler-outputs
 
       - name: Check for cafe data
         id: check_data
         run: |
-          if [[ "${{ steps.download_artifact.outcome }}" == "success" ]] && ls crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
+          if [[ "${{ steps.download_artifact.outcome }}" == "success" ]] && ls crawler/crawler-outputs/${{ matrix.cafe }}-*.json 1> /dev/null 2>&1; then
             echo "has_data=true" >> $GITHUB_OUTPUT
             echo "✅ Found data files for ${{ matrix.cafe }}"
           else
