@@ -9,7 +9,6 @@ import { ConvexImage } from '../components/ConvexImage';
 import { ExternalLinkIcon } from '../components/icons';
 import { ProductCard } from '../components/ProductCard';
 import { ReviewSection } from '../components/reviews/ReviewSection';
-import { useScrollToTop } from '../utils/useScrollToTop';
 
 export const Route = createFileRoute('/product/$shortId')({
   component: ProductPage,
@@ -29,7 +28,6 @@ export const Route = createFileRoute('/product/$shortId')({
 
 function ProductPage() {
   const { shortId } = Route.useParams();
-  useScrollToTop(shortId);
 
   const { data: product } = useSuspenseQuery(
     convexQuery(api.products.getProductWithImageByShortId, {

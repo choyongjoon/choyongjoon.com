@@ -4,7 +4,6 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import type { Id } from 'convex/_generated/dataModel';
 import { z } from 'zod';
 import CafeHeader from '~/components/cafe/CafeHeader';
-import { useScrollToTop } from '~/utils/useScrollToTop';
 import { api } from '../../convex/_generated/api';
 import { ProductCard } from '../components/ProductCard';
 import { getOrderedCategories } from '../utils/categories';
@@ -35,7 +34,6 @@ export const Route = createFileRoute('/cafe/$slug')({
 
 function CafePage() {
   const { slug } = Route.useParams();
-  useScrollToTop(slug);
   const { data: cafe } = useSuspenseQuery(
     convexQuery(api.cafes.getBySlug, { slug })
   );
