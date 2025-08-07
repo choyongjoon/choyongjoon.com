@@ -16,7 +16,7 @@ export function SettingsHeader({
       <p className="mt-2 text-base-content/70">
         {isInitialSetup
           ? '잔점에 오신 것을 환영합니다! 프로필을 설정해주세요.'
-          : '프로필 정보를 수정할 수 있습니다.'}
+          : ''}
       </p>
 
       {isInitialSetup && (

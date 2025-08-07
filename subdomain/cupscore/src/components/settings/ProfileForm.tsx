@@ -27,79 +27,66 @@ export function ProfileForm({
   return (
     <div className="card bg-base-100 shadow-lg">
       <div className="card-body">
-        <form className="space-y-6" onSubmit={onSubmit}>
+        <form onSubmit={onSubmit}>
           {/* Profile Image Section */}
           {children}
 
-          {/* Name Field */}
-          <div className="form-control">
-            <label className="label" htmlFor="name">
-              <span className="label-text font-medium">이름</span>
-            </label>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">이름</legend>
             <input
-              className="input input-bordered input-primary"
+              className="input input-primary"
               id="name"
               name="name"
               onChange={onInputChange}
-              placeholder="이름을 입력하세요"
               required
               type="text"
               value={formData.name}
             />
-          </div>
-
-          {/* Handle Field */}
-          <div className="form-control">
-            <label className="label" htmlFor="handle">
-              <span className="label-text font-medium">핸들</span>
+          </fieldset>
+          <fieldset className="fieldset">
+            <legend className="fieldset-legend">핸들</legend>
+            <label className="input input-primary">
+              @
+              <input
+                className="grow"
+                id="handle"
+                name="handle"
+                onChange={onInputChange}
+                pattern="^[a-zA-Z0-9_-]+$"
+                required
+                type="text"
+                value={formData.handle}
+              />
             </label>
-            <input
-              className="input input-bordered input-primary"
-              id="handle"
-              name="handle"
-              onChange={onInputChange}
-              pattern="^[a-zA-Z0-9_-]+$"
-              placeholder="핸들을 입력하세요 (예: @myhandle)"
-              required
-              type="text"
-              value={formData.handle}
-            />
-            <div className="label">
-              <span className="label-text-alt">
-                영문, 숫자, _, - 만 사용 가능합니다.
-              </span>
-            </div>
-          </div>
-
+            <p className="label">영문, 숫자, _, - 만 사용 가능합니다.</p>
+          </fieldset>
           {/* Submit Buttons */}
-          <div className="form-control pt-4">
-            <div className="flex justify-end gap-4">
-              {!isInitialSetup && (
-                <Link className="btn btn-ghost" to="/profile">
-                  취소
-                </Link>
-              )}
-              <button
-                className="btn btn-primary"
-                disabled={isSubmitting || userLoading}
-                type="submit"
-              >
-                {(() => {
-                  if (isSubmitting) {
-                    return (
-                      <>
-                        <span className="loading loading-spinner loading-sm" />
-                        저장 중...
-                      </>
-                    );
-                  }
-                  if (isInitialSetup) {
-                    return '프로필 설정 완료';
-                  }
-                  return '변경사항 저장';
-                })()}
-              </button>
-            </div>
+          <div className="flex justify-end gap-4">
+            {!isInitialSetup && (
+              <Link className="btn btn-ghost" to="/profile">
+                취소
+              </Link>
+            )}
+            <button
+              className="btn btn-primary"
+              disabled={isSubmitting || userLoading}
+              type="submit"
+            >
+              {(() => {
+                if (isSubmitting) {
+                  return (
+                    <>
+                      <span className="loading loading-spinner loading-sm" />
+                      저장 중...
+                    </>
+                  );
+                }
+                if (isInitialSetup) {
+                  return '프로필 설정 완료';
+                }
+                return '변경사항 저장';
+              })()}
+            </button>
           </div>
         </form>
       </div>

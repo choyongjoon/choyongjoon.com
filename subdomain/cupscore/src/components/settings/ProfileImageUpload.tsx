@@ -49,33 +49,23 @@ export function ProfileImageUpload({
   };
 
   return (
-    <div className="form-control">
-      <label className="label" htmlFor="profile-image">
-        <span className="label-text font-medium">프로필 이미지</span>
-      </label>
+    <fieldset className="fieldset">
+      <legend className="fieldset-legend">프로필 이미지</legend>
 
-      <div className="flex items-center gap-6">
-        {/* Current/Preview Image */}
-        <div className="avatar">
-          <div className="h-24 w-24 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
-            {renderProfileImage()}
-          </div>
-        </div>
-
-        {/* Upload Button */}
-        <div>
-          <input
-            accept="image/*"
-            className="file-input file-input-bordered file-input-primary w-full max-w-xs"
-            id="profile-image"
-            onChange={onImageChange}
-            type="file"
-          />
-          <div className="label">
-            <span className="label-text-alt">JPG, PNG 파일만 지원됩니다.</span>
-          </div>
+      <div className="avatar">
+        <div className="h-24 w-24 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100">
+          {renderProfileImage()}
         </div>
       </div>
-    </div>
+
+      <input
+        accept="image/*"
+        className="file-input file-input-primary"
+        id="profile-image"
+        onChange={onImageChange}
+        type="file"
+      />
+      <p className="label">JPG, PNG 파일만 지원됩니다.</p>
+    </fieldset>
   );
 }
