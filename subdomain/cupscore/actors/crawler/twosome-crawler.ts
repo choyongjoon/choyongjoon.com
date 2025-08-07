@@ -57,13 +57,14 @@ const maxRequestsInTestMode = isTestMode
   : 50;
 
 const CRAWLER_CONFIG = {
-  maxConcurrency: 2,
+  maxConcurrency: 3, // Increase concurrency for better performance
   maxRequestsPerCrawl: isTestMode ? maxRequestsInTestMode : 50,
-  maxRequestRetries: 2,
-  requestHandlerTimeoutSecs: isTestMode ? 60 : 240,
+  maxRequestRetries: 3, // Increase retries
+  requestHandlerTimeoutSecs: isTestMode ? 120 : 300, // Increase timeout
+  navigationTimeoutSecs: 90, // Add navigation timeout
   launchOptions: {
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'] as string[],
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   },
 };
 
@@ -260,6 +261,10 @@ async function handleMainMenuPage(
 ) {
   logger.info('Processing main menu page to discover categories');
 
+  // Set longer navigation timeout for the page
+  page.setDefaultNavigationTimeout(90_000); // 90 seconds
+  page.setDefaultTimeout(60_000); // 60 seconds for other operations
+
   await waitForLoad(page);
   await takeDebugScreenshot(page, 'twosome-main-menu');
 
@@ -321,19 +326,56 @@ export const createTwosomeCrawler = () =>
     launchContext: {
       launchOptions: CRAWLER_CONFIG.launchOptions,
     },
-    async requestHandler({ page, crawler: crawlerInstance }) {
-      await handleMainMenuPage(page, crawlerInstance);
+    async requestHandler({ page, crawler: crawlerInstance, request }) {
+      try {
+        logger.info(`🌐 Attempting to crawl: ${request.url}`);
+        await handleMainMenuPage(page, crawlerInstance);
+      } catch (error) {
+        logger.error(`❌ Failed to process ${request.url}: ${error}`);
+
+        throw error;
+      }
+    },
+    failedRequestHandler({ request, error }) {
+      logger.error(
+        `❌ Request failed completely: ${request.url} - ${error instanceof Error ? error.message : String(error)}`
+      );
     },
     maxConcurrency: CRAWLER_CONFIG.maxConcurrency,
     maxRequestsPerCrawl: CRAWLER_CONFIG.maxRequestsPerCrawl,
     maxRequestRetries: CRAWLER_CONFIG.maxRequestRetries,
     requestHandlerTimeoutSecs: CRAWLER_CONFIG.requestHandlerTimeoutSecs,
+    navigationTimeoutSecs: CRAWLER_CONFIG.navigationTimeoutSecs,
   });
+
+async function checkSiteAccessibility(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      },
+    });
+    return response.ok || response.status === 403; // 403 might still allow crawler access
+  } catch {
+    return false;
+  }
+}
 
 export const runTwosomeCrawler = async () => {
   const crawler = createTwosomeCrawler();
 
   try {
+    // Check if the URL is accessible
+    const isAccessible = await checkSiteAccessibility(SITE_CONFIG.startUrl);
+
+    if (!isAccessible) {
+      throw new Error('Primary URL is not accessible');
+    }
+
+    logger.info(`🌐 Starting crawler with URL: ${SITE_CONFIG.startUrl}`);
+
     await crawler.run([SITE_CONFIG.startUrl]);
     const dataset = await crawler.getData();
     await writeProductsToJson(dataset.items as Product[], 'twosome');
