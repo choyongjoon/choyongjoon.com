@@ -38,5 +38,13 @@
   {
     "name": "탄산수",
     "externalCategory": "Water"
+  },
+  {
+    "name": "망고 라떼",
+    "externalCategory": "Latte"
+  },
+  {
+    "name": "흑당라떼",
+    "externalCategory": "Latte"
   }
 ]

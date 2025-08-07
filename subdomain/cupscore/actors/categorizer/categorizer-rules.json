@@ -497,6 +497,58 @@
       "createdBy": "human",
       "createdAt": 1754121006638,
       "usageCount": 1
+    },
+    {
+      "id": "pattern-cold-brew-variants",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["콜드 브루", "콜드브류", "cold brew"]
+      },
+      "targetCategory": "커피",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754130000000,
+      "usageCount": 0,
+      "priority": 1
+    },
+    {
+      "id": "pattern-oolong-tea",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["우롱티", "우롱차"]
+      },
+      "targetCategory": "차",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754130000000,
+      "usageCount": 0,
+      "priority": 1
+    },
+    {
+      "id": "pattern-milk-tea-variants",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["밀크티"]
+      },
+      "targetCategory": "차",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754130000000,
+      "usageCount": 0,
+      "priority": 1
+    },
+    {
+      "id": "pattern-brown-sugar-latte-other",
+      "type": "pattern",
+      "condition": {
+        "nameContains": ["흑당라떼", "흑당 라떼", "흑당라테", "흑당 라테"]
+      },
+      "targetCategory": "그 외",
+      "confidence": "high",
+      "createdBy": "system",
+      "createdAt": 1754130000000,
+      "usageCount": 0,
+      "priority": 1
     }
   ],
   "stats": {

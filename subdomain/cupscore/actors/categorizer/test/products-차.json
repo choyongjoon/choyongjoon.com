@@ -46,5 +46,13 @@
   {
     "name": "우롱차",
     "externalCategory": "Tea"
+  },
+  {
+    "name": "수박우롱티",
+    "externalCategory": "Tea"
+  },
+  {
+    "name": "밀크티라떼",
+    "externalCategory": "Tea"
   }
 ]
