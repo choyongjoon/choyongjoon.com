@@ -13,6 +13,18 @@ import { useScrollToTop } from '../utils/useScrollToTop';
 
 export const Route = createFileRoute('/product/$shortId')({
   component: ProductPage,
+  loader: async (opts) => {
+    const product = await opts.context.queryClient.ensureQueryData(
+      convexQuery(api.products.getProductWithImageByShortId, {
+        shortId: opts.params.shortId,
+      })
+    );
+    await opts.context.queryClient.ensureQueryData(
+      convexQuery(api.cafes.getById, {
+        cafeId: product?.cafeId as Id<'cafes'>,
+      })
+    );
+  },
 });
 
 function ProductPage() {
@@ -54,9 +66,7 @@ function ProductPage() {
       {/* Product Details */}
       <div className="container mx-auto px-4 py-8">
         {/* Back Link */}
-        {cafe && (
-          <BackLink to={`/cafe/${cafe.slug}`}>{cafe.name}</BackLink>
-        )}
+        {cafe && <BackLink to={`/cafe/${cafe.slug}`}>{cafe.name}</BackLink>}
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Product Image */}
           <div className="flex justify-center">

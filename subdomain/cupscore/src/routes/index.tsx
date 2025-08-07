@@ -6,6 +6,14 @@ import { api } from '../../convex/_generated/api';
 
 export const Route = createFileRoute('/')({
   component: Home,
+  loader: async (opts) => {
+    await opts.context.queryClient.ensureQueryData(
+      convexQuery(api.cafes.list, {})
+    );
+    await opts.context.queryClient.ensureQueryData(
+      convexQuery(api.stats.getTotalProductCount, {})
+    );
+  },
 });
 
 function Home() {

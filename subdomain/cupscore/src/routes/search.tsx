@@ -20,6 +20,19 @@ export const Route = createFileRoute('/search')({
     cafeId: (search.cafeId as string) || '',
     category: (search.category as string) || '',
   }),
+  loader: async (opts) => {
+    const searchFilters = opts.location.search as SearchFilters;
+
+    // Only prefetch if there's a search term to avoid unnecessary empty queries
+    if (searchFilters.searchTerm?.trim()) {
+      await opts.context.queryClient.ensureQueryData(
+        convexQuery(api.products.search, {
+          searchTerm: searchFilters.searchTerm,
+          limit: 100,
+        })
+      );
+    }
+  },
 });
 
 function SearchPage() {

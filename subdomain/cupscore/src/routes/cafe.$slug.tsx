@@ -1,5 +1,5 @@
 import { convexQuery } from '@convex-dev/react-query';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import type { Id } from 'convex/_generated/dataModel';
 import { z } from 'zod';
@@ -33,7 +33,11 @@ export const Route = createFileRoute('/cafe/$slug')({
 });
 
 function CafePage() {
-  const { cafe } = Route.useLoaderData();
+  const { slug } = Route.useParams();
+  const { data: cafe } = useSuspenseQuery(
+    convexQuery(api.cafes.getBySlug, { slug })
+  );
+
   const { category: selectedCategory } = Route.useSearch();
   const navigate = useNavigate();
 
