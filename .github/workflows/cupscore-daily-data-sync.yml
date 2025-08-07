@@ -303,7 +303,7 @@ jobs:
 
       - name: Run upload for ${{ matrix.cafe }}
         if: steps.check_data.outputs.has_data == 'true'
-        run: pnpm run upload ${{ matrix.cafe }}
+        run: pnpm run upload ${{ matrix.cafe }} --download-images
         working-directory: ./subdomain/cupscore
         env:
           VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
