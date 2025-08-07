@@ -283,7 +283,9 @@ async function handleProductPage(
   try {
     await waitForLoad(page);
     // Wait for the main product element to ensure content is loaded
-    await page.waitForSelector(SELECTORS.productDetails.name, { timeout: 10000 });
+    await page.waitForSelector(SELECTORS.productDetails.name, {
+      timeout: 10_000,
+    });
 
     const product = await extractProductData(page);
     if (product.name && product.externalId) {

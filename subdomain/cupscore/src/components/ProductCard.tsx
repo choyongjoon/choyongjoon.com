@@ -48,10 +48,10 @@ export function ProductCard({
         />
       </figure>
       <div className="card-body overflow-hidden p-2 md:p-4">
-        <h3 className="card-title break-keep">{product.name}</h3>
         {product.cafeName && (
           <p className="text-base-content/60 text-sm">{product.cafeName}</p>
         )}
+        <h3 className="card-title break-keep">{product.name}</h3>
         <RatingSummary reviewStats={reviewStats || defaultReviewStats} />
         <div className="flex items-center justify-between">
           <div className="space-y-1">

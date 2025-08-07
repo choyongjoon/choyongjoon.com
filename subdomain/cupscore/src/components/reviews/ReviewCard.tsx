@@ -91,7 +91,7 @@ export function ReviewCard({
 
   return (
     <div className="card border border-base-300 bg-base-100 shadow-sm">
-      <div className="card-body p-4">
+      <div className="card-body gap-0 p-4">
         {/* Header with Profile Image, User Name, and Actions */}
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
@@ -180,9 +180,7 @@ export function ReviewCard({
           <div className="ml-[52px]">
             {' '}
             {/* 40px (h-10 w-10) + 12px (gap-3) = 52px */}
-            <p className="whitespace-pre-wrap text-base-content/80 text-sm">
-              {review.text}
-            </p>
+            <p className="text-base-content">{review.text}</p>
           </div>
         )}
 
@@ -202,9 +200,9 @@ export function ReviewCard({
         )}
 
         {/* Date */}
-        <div className="mt-3 text-right text-base-content/50 text-xs">
+        <div className="mt-3 text-right text-base-content/60 text-sm">
           {wasEdited ? (
-            <>{updatedDate.toLocaleDateString('ko-KR')} 수정</>
+            <>{updatedDate.toLocaleDateString('ko-KR')} (수정됨)</>
           ) : (
             createdDate.toLocaleDateString('ko-KR')
           )}

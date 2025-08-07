@@ -37,7 +37,6 @@ export const search = query({
 
     // Filter by active products only
     let products = await productsQuery.collect();
-    products = products.filter((p) => p.isActive);
 
     // Filter by cafe if specified
     if (cafeId) {

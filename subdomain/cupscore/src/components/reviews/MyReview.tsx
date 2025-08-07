@@ -1,5 +1,9 @@
+import { convexQuery } from '@convex-dev/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import type { Doc } from 'convex/_generated/dataModel';
+import { api } from 'convex/_generated/api';
+import type { Doc, Id } from 'convex/_generated/dataModel';
+
 import { RatingText } from './RatingText';
 
 interface MyReview extends Doc<'reviews'> {
@@ -10,16 +14,29 @@ interface MyReview extends Doc<'reviews'> {
 }
 
 export function MyReview({ review }: { review: MyReview }) {
+  const { data: cafe } = useSuspenseQuery(
+    convexQuery(api.cafes.getById, {
+      cafeId: review.product?.cafeId as Id<'cafes'>,
+    })
+  );
+
   return (
     <div
       className="border-base-200 border-b pb-4 last:border-b-0 last:pb-0"
       key={review._id}
     >
+      <Link
+        className="link link-neutral"
+        params={{ slug: cafe?.slug || '' }}
+        to="/cafe/$slug"
+      >
+        {cafe?.name}
+      </Link>
       {/* Product link */}
       {review.product && (
         <div className="mb-3">
           <Link
-            className="link font-medium"
+            className="link"
             params={{ shortId: review.product.shortId }}
             to="/product/$shortId"
           >
@@ -55,6 +72,7 @@ export function MyReview({ review }: { review: MyReview }) {
             ))}
           </div>
         )}
+
         <p className="text-right text-base-content/60 text-sm">
           {new Date(review.createdAt).toLocaleDateString('ko-KR')}
           {review.updatedAt !== review.createdAt && ' (수정됨)'}
