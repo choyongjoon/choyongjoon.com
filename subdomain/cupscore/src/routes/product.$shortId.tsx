@@ -28,9 +28,8 @@ export const Route = createFileRoute('/product/$shortId')({
 });
 
 function ProductPage() {
-  useScrollToTop();
-
   const { shortId } = Route.useParams();
+  useScrollToTop(shortId);
 
   const { data: product } = useSuspenseQuery(
     convexQuery(api.products.getProductWithImageByShortId, {
