@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { BackLink } from '../BackLink';
 
 export function SettingsHeader({
   isInitialSetup,
@@ -7,13 +7,7 @@ export function SettingsHeader({
 }) {
   return (
     <div className="mb-6">
-      {!isInitialSetup && (
-        <div className="mb-4 flex items-center gap-4">
-          <Link className="btn btn-ghost btn-sm" to="/profile">
-            ← 프로필로 돌아가기
-          </Link>
-        </div>
-      )}
+      {!isInitialSetup && <BackLink to="/profile">프로필</BackLink>}
 
       <h1 className="font-bold text-3xl">
         {isInitialSetup ? '환영합니다!' : '프로필 설정'}

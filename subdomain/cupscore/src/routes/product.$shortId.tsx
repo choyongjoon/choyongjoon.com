@@ -4,6 +4,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import type { Id } from 'convex/_generated/dataModel';
 import { RatingSummary } from '~/components/RatingSummary';
 import { api } from '../../convex/_generated/api';
+import { BackLink } from '../components/BackLink';
 import { ConvexImage } from '../components/ConvexImage';
 import { ExternalLinkIcon } from '../components/icons';
 import { ProductCard } from '../components/ProductCard';
@@ -50,29 +51,12 @@ function ProductPage() {
 
   return (
     <div className="min-h-screen bg-base-200">
-      {/* Breadcrumb */}
-      <div className="bg-base-100 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="breadcrumbs text-sm">
-            <ul>
-              <li>
-                <Link to="/">홈</Link>
-              </li>
-              {cafe && (
-                <li>
-                  <Link params={{ slug: cafe.slug }} to="/cafe/$slug">
-                    {cafe.name}
-                  </Link>
-                </li>
-              )}
-              <li>{product.name}</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
       {/* Product Details */}
       <div className="container mx-auto px-4 py-8">
+        {/* Back Link */}
+        {cafe && (
+          <BackLink to={`/cafe/${cafe.slug}`}>{cafe.name}</BackLink>
+        )}
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Product Image */}
           <div className="flex justify-center">
