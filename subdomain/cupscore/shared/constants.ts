@@ -31,4 +31,12 @@ export const AVAILABLE_CAFES = {
     name: '할리스',
     slug: 'hollys',
   },
+  paulbassett: {
+    name: '폴바셋',
+    slug: 'paulbassett',
+  },
+  mammoth: {
+    name: '매머드커피',
+    slug: 'mammoth',
+  },
 } as const;
