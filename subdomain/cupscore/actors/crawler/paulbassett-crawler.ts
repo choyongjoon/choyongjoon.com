@@ -34,7 +34,8 @@ const SELECTORS = {
 
   // Product data selectors
   productData: {
-    name: 'a',
+    nameContainer: '.txtArea',
+    nameEn: '.txtArea .sTxt',
     image: 'img',
   },
 } as const;
@@ -68,7 +69,6 @@ const CRAWLER_CONFIG = {
 // ================================================
 
 // Regular expressions defined at module level for performance
-const STATUS_LABEL_REGEX = /^\[.*?\]\s*/;
 const EXTERNAL_ID_REGEX = /[^\w-]/g;
 
 // Map category IDs to category names and types
@@ -94,12 +94,26 @@ async function extractProductFromItem(
   pageUrl: string
 ): Promise<Product | null> {
   try {
-    // Extract product name from anchor text
-    const nameElement = item.locator(SELECTORS.productData.name).first();
-    const name = await nameElement
+    // Extract Korean name from the main text area (excluding the English span)
+    const nameContainerElement = item
+      .locator(SELECTORS.productData.nameContainer)
+      .first();
+    const fullNameText = await nameContainerElement
       .textContent()
       .then((text) => text?.trim() || '')
       .catch(() => '');
+
+    // Extract English name from the span element
+    const nameEnElement = item.locator(SELECTORS.productData.nameEn).first();
+    const nameEn = await nameEnElement
+      .textContent()
+      .then((text) => text?.trim() || '')
+      .catch(() => '');
+
+    // Get Korean name by removing the English part from the full text
+    const name = nameEn
+      ? fullNameText.replace(nameEn, '').trim()
+      : fullNameText;
 
     // Extract image src
     const imageSrc = await item
@@ -121,7 +135,6 @@ async function extractProductFromItem(
     // Determine category from URL
     const categoryInfo = getCategoryFromUrl(pageUrl);
 
-    const cleanName = name.replace(STATUS_LABEL_REGEX, '');
     let description = '';
     if (hasNewLabel) {
       description = 'New Product';
@@ -130,11 +143,11 @@ async function extractProductFromItem(
     }
 
     const product: Product = {
-      name: cleanName,
-      nameEn: cleanName, // Paul Bassett uses English names
+      name: name || nameEn, // Use Korean as primary, fallback to English
+      nameEn: nameEn || name, // Use English as primary, fallback to Korean
       description,
       externalCategory: categoryInfo.name,
-      externalId: name
+      externalId: (nameEn || name)
         .replace(/\s+/g, '-')
         .toLowerCase()
         .replace(EXTERNAL_ID_REGEX, ''),
