@@ -46,5 +46,37 @@
   {
     "name": "흑당라떼",
     "externalCategory": "Latte"
+  },
+  {
+    "name": "레몬 얼그레이 스콘",
+    "externalCategory": "FOOD"
+  },
+  {
+    "name": "얼그레이 휘낭시에",
+    "externalCategory": "FOOD"
+  },
+  {
+    "name": "초코 라떼",
+    "externalCategory": "BEVERAGE"
+  },
+  {
+    "name": "딸기 크림 라떼",
+    "externalCategory": "BEVERAGE"
+  },
+  {
+    "name": "옥수수 라떼",
+    "externalCategory": "BEVERAGE"
+  },
+  {
+    "name": "고구마 라떼",
+    "externalCategory": "BEVERAGE"
+  },
+  {
+    "name": "콩가루 라떼",
+    "externalCategory": "BEVERAGE"
+  },
+  {
+    "name": "메론바나 라떼",
+    "externalCategory": "BEVERAGE"
   }
 ]

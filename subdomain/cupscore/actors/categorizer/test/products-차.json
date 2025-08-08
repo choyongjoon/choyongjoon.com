@@ -54,5 +54,17 @@
   {
     "name": "밀크티라떼",
     "externalCategory": "Tea"
+  },
+  {
+    "name": "쿨 민트 허브차",
+    "externalCategory": "BEVERAGE"
+  },
+  {
+    "name": "제주 한라봉 티",
+    "externalCategory": "BEVERAGE"
+  },
+  {
+    "name": "크림슨 펀치 과일차",
+    "externalCategory": "BEVERAGE"
   }
 ]
