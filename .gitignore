@@ -44,3 +44,6 @@ next-env.d.ts
 subdomain/cupscore/crawler-outputs/
 subdomain/cupscore/storage/
 
+
+# Local Netlify folder
+.netlify
