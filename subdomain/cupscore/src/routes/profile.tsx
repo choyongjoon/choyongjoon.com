@@ -118,7 +118,7 @@ function ProfilePage() {
                             {userStats.averageRating.toFixed(1)}
                           </div>
                           <div className="stat-desc">
-                            총 {userStats.totalReviews}개의 평가
+                            총 {userStats.totalReviews}개의 후기
                           </div>
                         </div>
                       </div>
@@ -147,7 +147,7 @@ function ProfilePage() {
         <div className="lg:col-span-2">
           <div className="card bg-base-100 shadow-md">
             <div className="card-body">
-              <h2 className="card-title mb-4">내 평가</h2>
+              <h2 className="card-title mb-4">내 후기</h2>
 
               {(() => {
                 if (isLoading) {
@@ -162,7 +162,7 @@ function ProfilePage() {
                   return (
                     <div className="py-8 text-center">
                       <p className="mb-4 text-error">
-                        평가를 불러오는 중 오류가 발생했습니다.
+                        후기를 불러오는 중 오류가 발생했습니다.
                       </p>
                       <p className="text-base-content/60 text-sm">
                         {String(reviewsError)}
@@ -184,7 +184,7 @@ function ProfilePage() {
                 return (
                   <div className="py-8 text-center">
                     <p className="mb-4 text-base-content/60">
-                      아직 작성한 평가가 없습니다.
+                      아직 작성한 후기가 없습니다.
                     </p>
                     <Link
                       className="btn btn-primary"

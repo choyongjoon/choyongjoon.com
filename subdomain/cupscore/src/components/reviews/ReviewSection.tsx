@@ -45,7 +45,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
 
   const handleWriteReview = () => {
     if (!currentUser) {
-      alert('평가를 작성하려면 로그인이 필요합니다.');
+      alert('후기를 작성하려면 로그인이 필요합니다.');
       return;
     }
     setShowForm(true);
@@ -70,11 +70,11 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
 
   const handleDeleteReview = async (reviewId: Id<'reviews'>) => {
     if (!currentUser) {
-      alert('평가를 삭제하려면 로그인이 필요합니다.');
+      alert('후기를 삭제하려면 로그인이 필요합니다.');
       return;
     }
 
-    if (!confirm('정말로 이 평가를 삭제하시겠습니까?')) {
+    if (!confirm('정말로 이 후기를 삭제하시겠습니까?')) {
       return;
     }
 
@@ -84,7 +84,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
         userId: currentUser._id,
       });
     } catch {
-      alert('평가 삭제에 실패했습니다. 다시 시도해주세요.');
+      alert('후기 삭제에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -95,7 +95,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
       {/* Review Actions */}
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-xl">
-          평가 ({reviewStats?.totalReviews || 0})
+          후기 ({reviewStats?.totalReviews || 0})
         </h3>
 
         {currentUser && !showForm && (
@@ -106,7 +106,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
                 onClick={handleEditReview}
                 type="button"
               >
-                내 평가 수정
+                내 후기 수정
               </button>
             ) : (
               <button
@@ -114,7 +114,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
                 onClick={handleWriteReview}
                 type="button"
               >
-                평가 작성
+                후기 작성
               </button>
             )}
           </div>
@@ -156,10 +156,10 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
           <div className="card bg-base-100 shadow-sm">
             <div className="card-body py-12 text-center">
               <h4 className="mb-2 font-semibold text-lg">
-                아직 평가가 없습니다
+                아직 후기가 없습니다
               </h4>
               <p className="mb-4 text-base-content/60">
-                이 상품에 대한 첫 번째 평가를 작성해보세요!
+                이 상품에 대한 첫 번째 후기를 작성해보세요!
               </p>
               {currentUser && (
                 <button
@@ -167,7 +167,7 @@ export function ReviewSection({ productId }: ReviewSectionProps) {
                   onClick={handleWriteReview}
                   type="button"
                 >
-                  첫 평가 작성하기
+                  첫 후기 작성하기
                 </button>
               )}
             </div>

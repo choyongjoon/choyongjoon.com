@@ -47,7 +47,7 @@ function ReviewImageModal({
       <dialog className="modal" id={`image-modal-${imageUrl}`}>
         <div className="modal-box w-auto max-w-none p-0">
           <img
-            alt={`평가 사진 ${index + 1}`}
+            alt={`후기 사진 ${index + 1}`}
             className="h-auto w-full"
             src={imageUrl}
           />

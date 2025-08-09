@@ -101,7 +101,7 @@ export function ReviewForm({
     e.preventDefault();
 
     if (!currentUser) {
-      alert('평가를 작성하려면 로그인이 필요합니다.');
+      alert('후기를 작성하려면 로그인이 필요합니다.');
       return;
     }
 
@@ -142,7 +142,7 @@ export function ReviewForm({
           allImageStorageIds.length > 0 ? allImageStorageIds : undefined,
       });
     } catch {
-      alert('평가 등록에 실패했습니다. 다시 시도해주세요.');
+      alert('후기 등록에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsUploading(false);
     }
@@ -153,7 +153,7 @@ export function ReviewForm({
       <div className="card bg-base-100 shadow-md">
         <div className="card-body text-center">
           <p className="text-base-content/70">
-            평가를 작성하려면 로그인이 필요합니다.
+            후기를 작성하려면 로그인이 필요합니다.
           </p>
         </div>
       </div>
@@ -170,7 +170,7 @@ export function ReviewForm({
     <div className="card bg-base-100 shadow-md">
       <div className="card-body">
         <h3 className="card-title">
-          {existingReview ? '평가 수정' : '평가 작성'}
+          {existingReview ? '후기 수정' : '후기 작성'}
         </h3>
 
         <form className="space-y-4" onSubmit={handleSubmit}>

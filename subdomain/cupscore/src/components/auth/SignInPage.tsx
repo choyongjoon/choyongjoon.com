@@ -105,7 +105,7 @@ export function SignInPage({ onClose }: SignInPageProps) {
           <h1 className="mb-2 font-bold font-sunflower text-2xl text-primary">
             잔점
           </h1>
-          <p className="text-base-content/70">로그인하여 평가를 남겨보세요.</p>
+          <p className="text-base-content/70">로그인하여 후기를 남겨보세요.</p>
         </div>
 
         <div className="space-y-4">

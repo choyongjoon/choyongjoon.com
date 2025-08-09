@@ -13,7 +13,7 @@ export function UserRatingHistogram({
   if (totalReviews === 0) {
     return (
       <div className="py-8 text-center text-base-content/60">
-        <p>아직 작성한 평가가 없습니다.</p>
+        <p>아직 작성한 후기가 없습니다.</p>
       </div>
     );
   }
@@ -56,7 +56,7 @@ export function UserRatingHistogram({
 
       <div className="mt-4 border-base-200 border-t pt-3">
         <div className="flex justify-between text-sm">
-          <span className="text-base-content/60">총 평가 수</span>
+          <span className="text-base-content/60">총 후기 수</span>
           <span className="font-medium">{totalReviews}개</span>
         </div>
       </div>

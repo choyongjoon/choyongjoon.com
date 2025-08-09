@@ -64,7 +64,7 @@ export function MyReview({ review }: { review: MyReview }) {
                 key={`${review._id}-image-${index}`}
               >
                 <img
-                  alt={`평가 이미지 ${index + 1}`}
+                  alt={`후기 이미지 ${index + 1}`}
                   className="h-full w-full object-cover"
                   src={imageUrl}
                 />

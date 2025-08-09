@@ -170,7 +170,7 @@ function ProductPage() {
         {/* Reviews Section */}
         <div className="mt-16">
           <div className="divider">
-            <h2 className="font-bold text-2xl">평가</h2>
+            <h2 className="font-bold text-2xl">후기</h2>
           </div>
           <ReviewSection productId={product._id} />
         </div>
