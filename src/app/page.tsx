@@ -15,16 +15,6 @@ export default function Home() {
               Old blog
             </a>
           </li>
-          <li className="mb-2">
-            <a
-              className="link"
-              href="https://cupscore.choyongjoon.com"
-              rel="noopener"
-              target="_blank"
-            >
-              잔점
-            </a>
-          </li>
         </ol>
         <div className="divider" />
         <ol>

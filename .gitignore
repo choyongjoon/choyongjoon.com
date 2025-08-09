@@ -40,7 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# crawler outputs
-subdomain/cupscore/crawler-outputs/
-subdomain/cupscore/storage/
 
